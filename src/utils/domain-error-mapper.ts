@@ -16,7 +16,12 @@ export function mapDomainErrorToHttp(error: DomainError): {
     case 'INVALID_PAYMENT_TRANSITION':
     case 'BUSINESS_RULE_VIOLATION':
     case 'PAYMENT_VERIFICATION_FAILED':
+    case 'INVALID_DATE_RANGE':
+    case 'PAYMENT_UPDATE_FAILED':
       return { statusCode: 400, errorCode: ErrorCode.VALIDATION_FAILED };
+
+    case 'UNAUTHORIZED_ADMIN':
+      return { statusCode: 401, errorCode: ErrorCode.UNAUTHORIZED };
 
     case 'PAYMENT_ALREADY_COMPLETED':
     case 'DUPLICATE_BOOKING':

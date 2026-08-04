@@ -151,6 +151,30 @@ export class InvalidWebhookSignatureError extends DomainError {
   }
 }
 
+export class UnauthorizedAdminError extends DomainError {
+  readonly code = 'UNAUTHORIZED_ADMIN';
+
+  constructor(message = 'Admin access denied') {
+    super(message);
+  }
+}
+
+export class InvalidDateRangeError extends DomainError {
+  readonly code = 'INVALID_DATE_RANGE';
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class PaymentUpdateError extends DomainError {
+  readonly code = 'PAYMENT_UPDATE_FAILED';
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 export const CANCELLED_BOOKING_PREFIX = '[CANCELLED]';
 export const CHECKED_OUT_BOOKING_PREFIX = '[CHECKED_OUT]';
 

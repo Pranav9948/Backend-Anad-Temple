@@ -4,10 +4,12 @@ import healthRoutes from '../../modules/health/index.js';
 import bookingRoutes from './booking.routes.js';
 import paymentRoutes from './payment.routes.js';
 import adminAuthRoutes from './admin-auth.routes.js';
+import adminRoutes from './admin.routes.js';
 
 const router: ExpressRouter = Router();
 router.use('/health', healthRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/admin/auth', adminAuthRoutes);
+router.use('/admin', adminRoutes);
 export default router;

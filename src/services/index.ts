@@ -46,4 +46,16 @@ export {
   type IAdminAuthService,
 } from '@/modules/admin/admin-auth.service.js';
 
+export {
+  adminDashboardService,
+  AdminDashboardService,
+  type IAdminDashboardService,
+} from '@/modules/admin/admin-dashboard.service.js';
+
+export {
+  adminBookingService,
+  AdminBookingService,
+  type IAdminBookingService,
+} from '@/modules/admin/admin-booking.service.js';
+
 export * from '@/domain/errors.js';
