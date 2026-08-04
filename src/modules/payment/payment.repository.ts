@@ -11,6 +11,7 @@ export type PaymentUpdateData = Prisma.PaymentUpdateInput;
 
 export interface IPaymentRepository {
   create(data: PaymentCreateData): Promise<Payment>;
+  findById(id: string): Promise<Payment | null>;
   findByBookingId(bookingId: string): Promise<Payment | null>;
   update(id: string, data: PaymentUpdateData): Promise<Payment>;
   updateStatus(id: string, status: PaymentStatus): Promise<Payment>;
@@ -23,6 +24,10 @@ export class PaymentRepository
 {
   create(data: PaymentCreateData): Promise<Payment> {
     return this.db.payment.create({ data });
+  }
+
+  findById(id: string): Promise<Payment | null> {
+    return this.db.payment.findUnique({ where: { id } });
   }
 
   findByBookingId(bookingId: string): Promise<Payment | null> {
