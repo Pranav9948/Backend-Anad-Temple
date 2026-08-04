@@ -77,3 +77,14 @@ export function buildPaymentFailedMessage(
     `*Failure Status:* ${payload.failureStatus}`,
   ].join('\n');
 }
+
+export function buildAdminOtpMessage(otp: string, expiryMinutes: number): string {
+  return [
+    '🔐 *Temple Admin Login OTP*',
+    '',
+    `Your one-time password is: *${otp}*`,
+    `Valid for ${expiryMinutes} minutes.`,
+    '',
+    'Do not share this code with anyone.',
+  ].join('\n');
+}

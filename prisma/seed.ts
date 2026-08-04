@@ -7,7 +7,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const DEFAULT_ADMIN = {
-  mobile: process.env.ADMIN_SEED_MOBILE ?? '9999999999',
+  mobile: process.env.ADMIN_SEED_MOBILE ?? '9020602727',
   name: process.env.ADMIN_SEED_NAME ?? 'Temple Admin',
   role: AdminRole.ADMIN,
 } as const;
