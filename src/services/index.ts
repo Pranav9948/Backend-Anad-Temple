@@ -34,4 +34,10 @@ export {
   type IOtpService,
 } from '@/modules/otp/otp.service.js';
 
+export {
+  notificationService,
+  NotificationService,
+  type INotificationService,
+} from '@/modules/notification/notification.service.js';
+
 export * from '@/domain/errors.js';

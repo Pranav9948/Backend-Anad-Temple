@@ -27,6 +27,26 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().min(1, 'RAZORPAY_KEY_ID is required'),
   RAZORPAY_KEY_SECRET: z.string().min(1, 'RAZORPAY_KEY_SECRET is required'),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1, 'RAZORPAY_WEBHOOK_SECRET is required'),
+
+  WHATSAPP_PROVIDER: z.enum(['META']).default('META'),
+  WHATSAPP_ACCESS_TOKEN: z.string().min(1, 'WHATSAPP_ACCESS_TOKEN is required'),
+  WHATSAPP_PHONE_NUMBER_ID: z
+    .string()
+    .min(1, 'WHATSAPP_PHONE_NUMBER_ID is required'),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+  TEMPLE_ADMIN_WHATSAPP_NUMBER: z
+    .string()
+    .regex(/^\d{10,15}$/, 'TEMPLE_ADMIN_WHATSAPP_NUMBER must be digits with country code'),
+  WHATSAPP_RETRY_MAX_ATTEMPTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3),
+  WHATSAPP_RETRY_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .default(1_000),
 });
 
 const serviceRootDir = process.cwd();

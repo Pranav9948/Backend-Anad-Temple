@@ -19,6 +19,8 @@ export const logger = pino({
       'cookies.refreshToken',
       'refreshToken',
       'accessToken',
+      'WHATSAPP_ACCESS_TOKEN',
+      'whatsappAccessToken',
     ],
     censor: '[REDACTED]',
   },
