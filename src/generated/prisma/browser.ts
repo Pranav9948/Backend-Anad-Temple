@@ -19,26 +19,26 @@ export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
  * Model Admin
- * Temple staff who manage bookings and payments. Independent of bookings.
+ * Temple administrator — authenticates via mobile OTP (independent model).
  */
 export type Admin = Prisma.AdminModel
 /**
  * Model Booking
- * A devotee booking for Vinayaka Chathurthi Archana.
+ * One devotee booking for Ganapathi Homam / Archana.
  */
 export type Booking = Prisma.BookingModel
 /**
  * Model BookingMember
- * An Archana member attached to a booking (name + nakshatra).
+ * An Archana member linked to a booking (name + nakshatra).
  */
 export type BookingMember = Prisma.BookingMemberModel
 /**
  * Model Payment
- * Optional payment record — at most one per booking (pay-online or admin-added later).
+ * Online or offline payment — at most one per booking.
  */
 export type Payment = Prisma.PaymentModel
 /**
  * Model OTP
- * One-time password records for mobile verification. Independent of bookings.
+ * OTP record for admin mobile login (independent model).
  */
 export type OTP = Prisma.OTPModel

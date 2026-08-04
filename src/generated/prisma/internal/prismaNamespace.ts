@@ -832,11 +832,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const AdminScalarFieldEnum = {
   id: 'id',
-  email: 'email',
-  passwordHash: 'passwordHash',
   name: 'name',
+  mobile: 'mobile',
   role: 'role',
-  isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -846,12 +844,13 @@ export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof Ad
 
 export const BookingScalarFieldEnum = {
   id: 'id',
-  referenceNumber: 'referenceNumber',
-  language: 'language',
+  bookingNumber: 'bookingNumber',
   devoteeName: 'devoteeName',
   mobileNumber: 'mobileNumber',
-  status: 'status',
-  paymentOption: 'paymentOption',
+  language: 'language',
+  paymentStatus: 'paymentStatus',
+  totalAmount: 'totalAmount',
+  notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -862,9 +861,8 @@ export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeo
 export const BookingMemberScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
-  memberName: 'memberName',
+  name: 'name',
   nakshatra: 'nakshatra',
-  sortOrder: 'sortOrder',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -875,14 +873,11 @@ export type BookingMemberScalarFieldEnum = (typeof BookingMemberScalarFieldEnum)
 export const PaymentScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
-  amountPaise: 'amountPaise',
-  currency: 'currency',
-  status: 'status',
+  amount: 'amount',
   method: 'method',
-  gatewayOrderId: 'gatewayOrderId',
-  gatewayPaymentId: 'gatewayPaymentId',
+  transactionId: 'transactionId',
+  status: 'status',
   paidAt: 'paidAt',
-  adminNotes: 'adminNotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -892,13 +887,12 @@ export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeo
 
 export const OTPScalarFieldEnum = {
   id: 'id',
-  mobileNumber: 'mobileNumber',
+  mobile: 'mobile',
   otpHash: 'otpHash',
-  purpose: 'purpose',
   status: 'status',
-  attemptCount: 'attemptCount',
+  verified: 'verified',
+  attempts: 'attempts',
   expiresAt: 'expiresAt',
-  verifiedAt: 'verifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -965,13 +959,6 @@ export type ListEnumAdminRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
 
 
 /**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1000,44 +987,16 @@ export type ListEnumLanguageFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
 
 
 /**
- * Reference to a field of type 'BookingStatus'
+ * Reference to a field of type 'PaymentStatus'
  */
-export type EnumBookingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingStatus'>
+export type EnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus'>
     
 
 
 /**
- * Reference to a field of type 'BookingStatus[]'
+ * Reference to a field of type 'PaymentStatus[]'
  */
-export type ListEnumBookingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'BookingPaymentOption'
- */
-export type EnumBookingPaymentOptionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingPaymentOption'>
-    
-
-
-/**
- * Reference to a field of type 'BookingPaymentOption[]'
- */
-export type ListEnumBookingPaymentOptionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingPaymentOption[]'>
-    
-
-
-/**
- * Reference to a field of type 'Nakshatra'
- */
-export type EnumNakshatraFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Nakshatra'>
-    
-
-
-/**
- * Reference to a field of type 'Nakshatra[]'
- */
-export type ListEnumNakshatraFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Nakshatra[]'>
+export type ListEnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus[]'>
     
 
 
@@ -1056,16 +1015,16 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
- * Reference to a field of type 'PaymentStatus'
+ * Reference to a field of type 'Nakshatra'
  */
-export type EnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus'>
+export type EnumNakshatraFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Nakshatra'>
     
 
 
 /**
- * Reference to a field of type 'PaymentStatus[]'
+ * Reference to a field of type 'Nakshatra[]'
  */
-export type ListEnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus[]'>
+export type ListEnumNakshatraFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Nakshatra[]'>
     
 
 
@@ -1084,20 +1043,6 @@ export type ListEnumPaymentMethodFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
- * Reference to a field of type 'OTPPurpose'
- */
-export type EnumOTPPurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OTPPurpose'>
-    
-
-
-/**
- * Reference to a field of type 'OTPPurpose[]'
- */
-export type ListEnumOTPPurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OTPPurpose[]'>
-    
-
-
-/**
  * Reference to a field of type 'OTPStatus'
  */
 export type EnumOTPStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OTPStatus'>
@@ -1108,6 +1053,13 @@ export type EnumOTPStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
  * Reference to a field of type 'OTPStatus[]'
  */
 export type ListEnumOTPStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OTPStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 

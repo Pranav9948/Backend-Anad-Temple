@@ -1,282 +1,335 @@
-# Stage 3 — Temple Booking Domain & Database Design
+# Stage 3 — Database Design & Prisma Implementation
 
-Stage 3 implements the **PostgreSQL database layer only** for the Anad Chamundi Temple Vinayaka Chathurthi booking application. No controllers, routes, services, repositories, or business APIs were added.
+Stage 3 implements the **PostgreSQL database layer only** for the Vinayaka Chathurthi Ganapathi Homam booking system. No routes, controllers, services, repositories, or business logic were added.
 
 ---
 
-## Folder Structure (Stage 3 additions)
+## Folder Structure (after Stage 3)
 
 ```
 prisma/
-├── schema.prisma                          # Domain schema (brand-new, not from SaaS)
-├── seed.ts                                # Default admin seed
+├── schema.prisma
+├── seed.ts
 └── migrations/
     ├── migration_lock.toml
-    └── 20260804000000_init_temple_booking_schema/
-        └── migration.sql
+    ├── 20260804000000_init_temple_booking_schema/
+    │   └── migration.sql          # Initial draft (superseded)
+    └── 20260804160000_stage3_schema_revision/
+        └── migration.sql          # Canonical Stage 3 schema
 
-src/generated/prisma/                      # Prisma Client (auto-generated — do not edit)
+src/generated/prisma/              # Auto-generated Prisma Client (do not edit)
 ```
 
 ---
 
-## Why Each Model Exists
+## Database Overview
 
-| Model | Purpose |
-|-------|---------|
-| **Admin** | Temple staff who log in to manage bookings and record offline payments. Independent of bookings. |
-| **Booking** | Core record when a devotee submits the form: language, name, mobile, payment choice, and status. |
-| **BookingMember** | One or more Archana participants per booking, each with a name and nakshatra. |
-| **Payment** | Optional financial record — created for online checkout or added later by admin for pay-later bookings. At most **one** payment per booking. |
-| **OTP** | Mobile verification codes (hashed, never plain text). Independent of bookings; looked up by mobile number. |
+### Admin → `admins`
 
-### Supporting enums (no extra models)
-
-Additional enums (`BookingStatus`, `BookingPaymentOption`, `Nakshatra`, etc.) replace free-form strings to enforce valid values at the database level. No extra tables were needed beyond the five required models.
-
----
-
-## Enums
-
-| Enum | Values | Used by |
-|------|--------|---------|
-| **Language** | `KANNADA`, `ENGLISH`, `TELUGU`, `TAMIL`, `HINDI`, `MALAYALAM` | `Booking.language` |
-| **AdminRole** | `SUPER_ADMIN`, `ADMIN` | `Admin.role` |
-| **BookingStatus** | `PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED` | `Booking.status` |
-| **BookingPaymentOption** | `PAY_ONLINE`, `PAY_LATER` | `Booking.paymentOption` |
-| **PaymentStatus** | `PENDING`, `PAID`, `FAILED`, `REFUNDED`, `WAIVED` | `Payment.status` |
-| **PaymentMethod** | `RAZORPAY`, `CASH`, `UPI`, `BANK_TRANSFER`, `OTHER` | `Payment.method` |
-| **OTPStatus** | `PENDING`, `VERIFIED`, `EXPIRED`, `FAILED` | `OTP.status` |
-| **OTPPurpose** | `BOOKING_VERIFICATION`, `ADMIN_LOGIN` | `OTP.purpose` |
-| **Nakshatra** | 27 lunar mansions (`ASHWINI` … `REVATI`) | `BookingMember.nakshatra` |
-
----
-
-## Models (field reference)
-
-### Admin → table `admins`
+Temple administrator identified by **mobile number**. Admin login uses OTP (see `OTP` model). Independent of bookings.
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | UUID | Primary key |
-| `email` | String | **Unique** — login identifier |
-| `passwordHash` | String | bcrypt hash (never plain password) |
 | `name` | String | Display name |
+| `mobile` | String(15) | **Unique** — login identifier |
 | `role` | AdminRole | Default `ADMIN` |
-| `isActive` | Boolean | Default `true` |
 | `createdAt` / `updatedAt` | Timestamptz | Auto-managed |
 
-### Booking → table `bookings`
+**Why it exists:** Temple staff need a persistent identity to manage bookings and payments. Mobile is the natural identifier for OTP-based admin login in India.
+
+---
+
+### Booking → `bookings`
+
+One devotee submission: language, contact details, payment status, and total amount.
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | UUID | Primary key |
-| `referenceNumber` | String(32) | **Unique** human-readable ref (e.g. `TB-2026-000001`) |
-| `language` | Language | Devotee's selected language |
+| `bookingNumber` | String(32) | **Unique** human-readable reference |
 | `devoteeName` | String | Primary contact name |
-| `mobileNumber` | String(15) | E.164-friendly length |
-| `status` | BookingStatus | Default `PENDING_PAYMENT` |
-| `paymentOption` | BookingPaymentOption | `PAY_ONLINE` or `PAY_LATER` |
+| `mobileNumber` | String(15) | Devotee phone |
+| `language` | Language | Selected form language |
+| `paymentStatus` | PaymentStatus | `PENDING` or `PAID` — quick admin filtering |
+| `totalAmount` | Int | Amount in **paise** (INR × 100) |
+| `notes` | Text? | Optional admin/devotee notes |
 | `createdAt` / `updatedAt` | Timestamptz | Auto-managed |
 
-**Indexes:** `mobileNumber`, `status`, `createdAt DESC`
+**Why it exists:** Central record for each Homam/Archana booking. `paymentStatus` on the booking allows fast list queries without always joining `payments`.
 
-### BookingMember → table `booking_members`
+**Why `notes` is optional:** Not every booking needs remarks; avoids nullable-field clutter elsewhere.
+
+**Why `totalAmount` is required:** Every booking has a computed total at checkout time, even for pay-later flows.
+
+---
+
+### BookingMember → `booking_members`
+
+One or more Archana participants per booking.
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | UUID | Primary key |
 | `bookingId` | UUID | FK → `bookings.id` |
-| `memberName` | String | Archana member name |
+| `name` | String | Member name |
 | `nakshatra` | Nakshatra | One of 27 enum values |
-| `sortOrder` | Int | Display order (default `0`) |
 | `createdAt` / `updatedAt` | Timestamptz | Auto-managed |
 
-**Indexes:** `bookingId`
+**Why it exists:** A single booking often covers multiple family members, each requiring name and nakshatra for the pooja.
 
-### Payment → table `payments`
+---
+
+### Payment → `payments`
+
+Online or offline payment — **at most one per booking** (0..1).
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | UUID | Primary key |
-| `bookingId` | UUID | **Unique** FK → `bookings.id` (0..1 payment per booking) |
-| `amountPaise` | Int | Amount in paise (INR × 100) — avoids float rounding |
-| `currency` | Char(3) | Default `INR` |
-| `status` | PaymentStatus | Default `PENDING` |
-| `method` | PaymentMethod | How payment was/will be collected |
-| `gatewayOrderId` | String? | Future Razorpay order id |
-| `gatewayPaymentId` | String? | Future Razorpay payment id |
-| `paidAt` | Timestamptz? | When payment completed |
-| `adminNotes` | Text? | Admin remarks |
+| `bookingId` | UUID | **Unique** FK → `bookings.id` |
+| `amount` | Int | Paise |
+| `method` | PaymentMethod | `ONLINE` or `CASH` |
+| `transactionId` | String? | **Unique** when set — gateway/bank reference |
+| `status` | PaymentStatus | `PENDING` or `PAID` |
+| `paidAt` | Timestamptz? | Set when payment completes |
 | `createdAt` / `updatedAt` | Timestamptz | Auto-managed |
 
-**Indexes:** `status`, `createdAt DESC`
+**Why it exists:** Separates financial audit trail from the booking record. Pay-later bookings have no `Payment` row until admin records one.
 
-### OTP → table `otps`
+**Why `transactionId` is optional:** Cash/offline payments may not have a gateway ID initially.
+
+**Why `paidAt` is optional:** Unpaid records have no completion timestamp.
+
+---
+
+### OTP → `otps`
+
+Mobile OTP for **admin login**. Independent of bookings.
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | UUID | Primary key |
-| `mobileNumber` | String(15) | Target phone |
-| `otpHash` | String | Hashed OTP (never store plain text) |
-| `purpose` | OTPPurpose | Why OTP was issued |
-| `status` | OTPStatus | Default `PENDING` |
-| `attemptCount` | Int | Brute-force guard (default `0`) |
+| `mobile` | String(15) | Target phone |
+| `otpHash` | String | Hashed OTP — **never store plain text** |
+| `status` | OTPStatus | `PENDING`, `VERIFIED`, `EXPIRED` |
+| `verified` | Boolean | Convenience flag (true when verified) |
+| `attempts` | Int | Brute-force counter (default 0) |
 | `expiresAt` | Timestamptz | Expiry time |
-| `verifiedAt` | Timestamptz? | Set when verified |
 | `createdAt` / `updatedAt` | Timestamptz | Auto-managed |
 
-**Indexes:** `(mobileNumber, status)`, `expiresAt`
+**Why it exists:** Supports passwordless admin authentication via SMS OTP.
+
+**Why both `status` and `verified`:** `status` is the canonical lifecycle enum; `verified` enables simple boolean queries in Stage 4 repositories.
 
 ---
 
 ## Relationships
 
 ```
-Admin          (independent — no FK to other models)
+Admin     (independent)
 
-OTP            (independent — no FK to other models)
+OTP       (independent)
 
-Booking 1 ──────< BookingMember   (one booking, many members)
+Booking 1 ──────< BookingMember     (1 : N, CASCADE delete)
    │
-   └────────── Payment 0..1       (optional one-to-one)
+   └────────── Payment 0..1         (1 : 0..1, RESTRICT delete)
 ```
 
-| Relationship | Cardinality | On delete | Why |
-|--------------|-------------|-----------|-----|
-| Booking → BookingMember | 1 : N | **Cascade** | Members have no meaning without their booking. |
-| Booking → Payment | 1 : 0..1 | **Restrict** | Prevents deleting a booking that still has a payment record (audit safety). Admin must handle payment first. |
-| Admin | Independent | — | Staff accounts are not tied to individual bookings. |
-| OTP | Independent | — | OTPs are ephemeral verification records looked up by mobile + status. |
+| From | To | Cardinality | On delete | Why |
+|------|-----|-------------|-----------|-----|
+| Booking → BookingMember | 1 : N | **Cascade** | Members belong exclusively to one booking |
+| Booking → Payment | 1 : 0..1 | **Restrict** | Protects payment audit trail from accidental booking deletion |
+| Admin | — | Independent | Staff not tied to individual bookings |
+| OTP | — | Independent | Ephemeral verification records |
+
+---
+
+## Enums
+
+| Enum | Values | Why |
+|------|--------|-----|
+| **Language** | `ENGLISH`, `MALAYALAM`, `TAMIL`, `TELUGU`, `HINDI` | Supported devotee languages — prevents invalid strings |
+| **PaymentStatus** | `PENDING`, `PAID` | Simple payment lifecycle for MVP |
+| **PaymentMethod** | `ONLINE`, `CASH` | Distinguishes gateway vs temple counter collection |
+| **AdminRole** | `ADMIN` | Extensible later (`SUPER_ADMIN`) without schema migration pain |
+| **OTPStatus** | `PENDING`, `VERIFIED`, `EXPIRED` | OTP lifecycle for admin login |
+| **Nakshatra** | 27 lunar mansions | Valid Archana nakshatra values at DB level |
 
 ---
 
 ## Database Diagram (ASCII)
 
 ```
-┌─────────────────┐
-│     admins      │
-├─────────────────┤
-│ id (PK)         │
-│ email (UNIQUE)  │
-│ password_hash   │
-│ name            │
-│ role            │
-│ is_active       │
-│ created_at      │
-│ updated_at      │
-└─────────────────┘
+┌──────────────────┐
+│      admins      │
+├──────────────────┤
+│ id (PK)          │
+│ name             │
+│ mobile (UNIQUE)  │
+│ role             │
+│ created_at       │
+│ updated_at       │
+└──────────────────┘
 
 
-┌─────────────────┐       ┌──────────────────────┐
-│    bookings     │       │   booking_members    │
-├─────────────────┤       ├──────────────────────┤
-│ id (PK)         │──┐    │ id (PK)              │
-│ reference_no(UQ)│  │    │ booking_id (FK) ─────┤
-│ language        │  └───>│ member_name          │
-│ devotee_name    │  1:N  │ nakshatra            │
-│ mobile_number   │       │ sort_order           │
-│ status          │       │ created_at           │
-│ payment_option  │       │ updated_at           │
-│ created_at      │       └──────────────────────┘
-│ updated_at      │
-└────────┬────────┘
+┌──────────────────┐         ┌─────────────────────┐
+│     bookings     │         │   booking_members   │
+├──────────────────┤         ├─────────────────────┤
+│ id (PK)          │────┐    │ id (PK)             │
+│ booking_no (UQ)  │    └───>│ booking_id (FK)     │
+│ devotee_name     │   1:N   │ name                │
+│ mobile_number    │         │ nakshatra           │
+│ language         │         │ created_at          │
+│ payment_status   │         │ updated_at          │
+│ total_amount     │         └─────────────────────┘
+│ notes            │
+│ created_at       │
+│ updated_at       │
+└────────┬─────────┘
          │ 1 : 0..1
          ▼
-┌─────────────────┐
-│    payments     │
-├─────────────────┤
-│ id (PK)         │
+┌──────────────────┐
+│     payments     │
+├──────────────────┤
+│ id (PK)          │
 │ booking_id (FK,UQ)
-│ amount_paise    │
-│ currency        │
-│ status          │
-│ method          │
-│ gateway_order_id│
-│ gateway_payment_id
-│ paid_at         │
-│ admin_notes     │
-│ created_at      │
-│ updated_at      │
-└─────────────────┘
+│ amount           │
+│ method           │
+│ transaction_id(UQ)
+│ status           │
+│ paid_at          │
+│ created_at       │
+│ updated_at       │
+└──────────────────┘
 
 
-┌─────────────────┐
-│      otps       │
-├─────────────────┤
-│ id (PK)         │
-│ mobile_number   │
-│ otp_hash        │
-│ purpose         │
-│ status          │
-│ attempt_count   │
-│ expires_at      │
-│ verified_at     │
-│ created_at      │
-│ updated_at      │
-└─────────────────┘
+┌──────────────────┐
+│       otps       │
+├──────────────────┤
+│ id (PK)          │
+│ mobile           │
+│ otp_hash         │
+│ status           │
+│ verified         │
+│ attempts         │
+│ expires_at       │
+│ created_at       │
+│ updated_at       │
+└──────────────────┘
 ```
 
 ---
 
-## Commands
+## Indexes & Why They Exist
 
-All commands assume you are in the project root and PostgreSQL is running locally.
+| Index | Table | Why |
+|-------|-------|-----|
+| `admins_mobile_key` (unique) | admins | One account per mobile; login lookup |
+| `bookings_booking_number_key` (unique) | bookings | Public booking reference lookups |
+| `bookings_mobile_number_idx` | bookings | Search bookings by devotee phone |
+| `bookings_payment_status_idx` | bookings | Admin dashboard: pending vs paid lists |
+| `bookings_created_at_idx` | bookings | Recent bookings sort (DESC) |
+| `booking_members_booking_id_idx` | booking_members | Load all members for a booking |
+| `payments_booking_id_key` (unique) | payments | Enforce 0..1 payment per booking |
+| `payments_transaction_id_key` (unique) | payments | Prevent duplicate gateway settlements |
+| `payments_status_idx` | payments | Filter payments by status |
+| `payments_created_at_idx` | payments | Recent payments sort (DESC) |
+| `otps_mobile_status_idx` | otps | Find active OTP for a mobile |
+| `otps_expires_at_idx` | otps | Cleanup / expiry sweep jobs |
 
-### 1. Generate Prisma Client
+---
+
+## Design Decisions
+
+1. **Brand-new schema** — No SaaS models copied; Stage 2 placeholder removed.
+2. **Amounts in paise (integer)** — Avoids floating-point money bugs; standard for INR.
+3. **`paymentStatus` on Booking** — Denormalized for performant admin queries; synced with Payment in Stage 4+ service layer.
+4. **`otpHash` not plain `otp`** — Security best practice; field maps to spec's "otp" concept.
+5. **`onDelete: Restrict` on Payment** — Financial records must be explicitly handled before booking deletion.
+6. **Extensibility** — Flat booking model can later gain `templeId`, `poojaTypeId`, or `festivalYear` columns without restructuring members/payments.
+
+---
+
+## Migration Commands
+
+### `pnpm run db:generate` — Generate Prisma Client
+
+Run after every schema change.
 
 ```powershell
 pnpm run db:generate
 ```
 
-### 2. Apply migrations (fresh / CI)
+**When:** Always, before building or running the app.
 
-```powershell
-pnpm run db:migrate:deploy
-```
+---
 
-### 3. Apply migrations (development — creates new migration files)
+### `pnpm run db:migrate` — Create & apply migrations (development)
 
 ```powershell
 pnpm run db:migrate
 ```
 
-### 4. Push schema without migration history (dev shortcut only)
+**When:** Day-to-day development after editing `schema.prisma`. Creates a new migration folder and applies it.
+
+---
+
+### `pnpm run db:migrate:deploy` — Apply migrations (CI / production)
+
+```powershell
+pnpm run db:migrate:deploy
+```
+
+**When:** Production deploys and CI pipelines. Applies pending migrations without prompting.
+
+---
+
+### `pnpm run db:push` — Push schema directly (dev shortcut)
 
 ```powershell
 pnpm run db:push
 ```
 
-### 5. Seed default admin
+**When:** Early prototyping only — **no migration history**. Do **not** use in production. Useful for quick local experiments; prefer `db:migrate` for anything you will deploy.
 
-Set these in `.env.development` first (see `.env.example`):
+---
 
-```
-ADMIN_SEED_EMAIL=admin@temple.local
-ADMIN_SEED_NAME=Temple Admin
-ADMIN_SEED_PASSWORD=change-me-min-10-chars
-```
-
-Then run:
-
-```powershell
-pnpm run db:seed
-```
-
-Expected output:
-
-```
-Seeded default admin: admin@temple.local (SUPER_ADMIN)
-The seed command has been executed.
-```
-
-### 6. Prisma Studio (visual DB browser)
+### `pnpm run db:studio` — Visual database browser
 
 ```powershell
 pnpm run db:studio
 ```
 
-Opens at `http://localhost:5555` by default.
+**When:** Inspecting tables, verifying seed data, manual QA.
+
+---
+
+## Seed
+
+### Environment variables (`.env.development`)
+
+```env
+ADMIN_SEED_MOBILE=9999999999
+ADMIN_SEED_NAME=Temple Admin
+```
+
+No passwords are hardcoded — admin auth is OTP-based.
+
+### Run
+
+```powershell
+pnpm run db:seed
+```
+
+### Expected output
+
+```
+Seeded default admin: Temple Admin (9999999999, ADMIN)
+The seed command has been executed.
+```
+
+Safe to re-run — uses `upsert` on `mobile`.
 
 ---
 
@@ -284,8 +337,10 @@ Opens at `http://localhost:5555` by default.
 
 - [x] Prisma schema created
 - [x] Enums created
-- [x] Relationships verified
-- [x] Migration generated (`20260804000000_init_temple_booking_schema`)
+- [x] Relations verified
+- [x] Indexes added
+- [x] Constraints verified
+- [x] Migration generated
 - [x] Migration applied
 - [x] Prisma Client generated
 - [x] Seed executed
@@ -295,164 +350,113 @@ Opens at `http://localhost:5555` by default.
 
 ## Stage 3 Completion Verification
 
-### Step 1 — Generate client
+### 1. Commands
 
 ```powershell
 pnpm run db:generate
-```
-
-**Expected:** `✔ Generated Prisma Client` with no errors.
-
-### Step 2 — Confirm migration status
-
-```powershell
 pnpm exec dotenv -e .env.development -- prisma migrate status
-```
-
-**Expected:**
-
-```
-1 migration found in prisma/migrations
-Database schema is up to date!
-```
-
-### Step 3 — Run seed
-
-```powershell
 pnpm run db:seed
-```
-
-**Expected:** `Seeded default admin: admin@temple.local (SUPER_ADMIN)`
-
-### Step 4 — Tables in PostgreSQL
-
-Connect to `dev_temple_booking` and run:
-
-```sql
-SELECT tablename
-FROM pg_tables
-WHERE schemaname = 'public'
-ORDER BY tablename;
-```
-
-**Expected tables:**
-
-| Table | Description |
-|-------|-------------|
-| `_prisma_migrations` | Prisma migration history |
-| `admins` | Temple admin accounts |
-| `bookings` | Devotee bookings |
-| `booking_members` | Archana members |
-| `payments` | Payment records |
-| `otps` | OTP verification records |
-
-`Stage2Placeholder` should **not** exist anymore.
-
-### Step 5 — Verify seed data
-
-```sql
-SELECT id, email, name, role, is_active FROM admins;
-```
-
-**Expected:** One row — `admin@temple.local`, role `SUPER_ADMIN`.
-
-### Step 6 — Verify foreign keys
-
-```sql
-SELECT
-  tc.table_name,
-  kcu.column_name,
-  ccu.table_name AS foreign_table,
-  ccu.column_name AS foreign_column,
-  rc.delete_rule
-FROM information_schema.table_constraints tc
-JOIN information_schema.key_column_usage kcu
-  ON tc.constraint_name = kcu.constraint_name
-JOIN information_schema.referential_constraints rc
-  ON tc.constraint_name = rc.constraint_name
-JOIN information_schema.constraint_column_usage ccu
-  ON rc.unique_constraint_name = ccu.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY'
-  AND tc.table_schema = 'public'
-ORDER BY tc.table_name;
-```
-
-**Expected FKs:**
-
-| From | Column | To | On delete |
-|------|--------|-----|-----------|
-| `booking_members` | `booking_id` | `bookings.id` | `CASCADE` |
-| `payments` | `booking_id` | `bookings.id` | `RESTRICT` |
-
-### Step 7 — Verify indexes
-
-```sql
-SELECT indexname, tablename
-FROM pg_indexes
-WHERE schemaname = 'public'
-  AND indexname NOT LIKE '%_pkey'
-ORDER BY tablename, indexname;
-```
-
-**Expected indexes include:**
-
-- `admins_email_key` (unique)
-- `bookings_reference_number_key` (unique)
-- `bookings_mobile_number_idx`
-- `bookings_status_idx`
-- `bookings_created_at_idx`
-- `booking_members_booking_id_idx`
-- `payments_booking_id_key` (unique)
-- `payments_status_idx`
-- `payments_created_at_idx`
-- `otps_mobile_number_status_idx`
-- `otps_expires_at_idx`
-
-### Step 8 — Prisma Studio
-
-```powershell
+pnpm run build
 pnpm run db:studio
 ```
 
-1. Open `http://localhost:5555`
-2. Click **Admin** — confirm one seeded row
-3. Confirm **Booking**, **BookingMember**, **Payment**, **OTP** tables exist (empty until Stage 4+)
+### 2. Expected terminal output
 
-### Step 9 — Build still passes
+**migrate status:**
 
-```powershell
-pnpm run build
+```
+2 migrations found in prisma/migrations
+Database schema is up to date!
 ```
 
-**Expected:** Exit code `0` (Prisma Client compiles with the rest of the app).
+**seed:**
 
----
-
-## Design Decisions
-
-1. **Brand-new schema** — Stage 2's `Stage2Placeholder` was removed. No SaaS models were copied.
-2. **`amountPaise` as integer** — avoids floating-point money bugs; standard for INR.
-3. **`BookingPaymentOption`** — captures "pay online" vs "book without payment" at booking time; payment record is optional for `PAY_LATER`.
-4. **`gatewayOrderId` / `gatewayPaymentId`** — nullable placeholders for future Razorpay integration (Stage 4+); not used in Stage 3.
-5. **`otpHash` only** — plain OTPs must never be stored.
-6. **`onDelete: Restrict` on Payment** — protects financial audit trail from accidental booking deletion.
-
----
-
-## Environment Variables (Stage 3)
-
-Add to `.env.development`:
-
-```env
-ADMIN_SEED_EMAIL=admin@temple.local
-ADMIN_SEED_NAME=Temple Admin
-ADMIN_SEED_PASSWORD=change-me-min-10-chars
+```
+Seeded default admin: Temple Admin (9999999999, ADMIN)
 ```
 
-`ADMIN_SEED_PASSWORD` is **required** for seeding. It is read from the environment — never hardcoded in source code.
+**build:** Exit code `0`
+
+### 3. Expected PostgreSQL tables
+
+| Table | Purpose |
+|-------|---------|
+| `_prisma_migrations` | Migration history |
+| `admins` | Temple administrators |
+| `bookings` | Devotee bookings |
+| `booking_members` | Archana members |
+| `payments` | Payment records |
+| `otps` | Admin login OTPs |
+
+```sql
+SELECT tablename FROM pg_tables
+WHERE schemaname = 'public' AND tablename != '_prisma_migrations'
+ORDER BY tablename;
+```
+
+### 4. Expected foreign keys
+
+| Child table | Column | Parent | On delete |
+|-------------|--------|--------|-----------|
+| `booking_members` | `booking_id` | `bookings.id` | CASCADE |
+| `payments` | `booking_id` | `bookings.id` | RESTRICT |
+
+```sql
+SELECT tc.table_name, kcu.column_name, ccu.table_name AS foreign_table, rc.delete_rule
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.referential_constraints rc ON tc.constraint_name = rc.constraint_name
+JOIN information_schema.constraint_column_usage ccu ON rc.unique_constraint_name = ccu.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public';
+```
+
+### 5. Expected indexes
+
+See [Indexes & Why They Exist](#indexes--why-they-exist) above.
+
+```sql
+SELECT indexname, tablename FROM pg_indexes
+WHERE schemaname = 'public' AND indexname NOT LIKE '%_pkey'
+ORDER BY tablename, indexname;
+```
+
+### 6. Expected migration files
+
+```
+prisma/migrations/
+├── migration_lock.toml
+├── 20260804000000_init_temple_booking_schema/migration.sql
+└── 20260804160000_stage3_schema_revision/migration.sql
+```
+
+### 7. Prisma Studio
+
+1. Run `pnpm run db:studio`
+2. Open `http://localhost:5555`
+3. Confirm all 5 model tables exist
+4. Click **Admin** — verify seeded row
+
+### 8. Verify seeded Admin
+
+```sql
+SELECT id, name, mobile, role FROM admins;
+```
+
+Expected: one row — `Temple Admin`, mobile `9999999999`, role `ADMIN`.
+
+### 9. Production-readiness checks
+
+- [ ] All money fields are integers (paise), not floats
+- [ ] OTP stored as hash, not plaintext
+- [ ] Unique constraints on `bookingNumber`, `mobile` (admin), `transactionId`
+- [ ] Foreign keys with appropriate cascade/restrict rules
+- [ ] Timestamps on every model
+- [ ] Enums constrain invalid domain values
+- [ ] Migrations applied via `migrate deploy` (not `db push`) in production
+- [ ] `pnpm run build` passes with generated client
 
 ---
 
-## Next Stage (not in scope)
+## Next Stage
 
-Stage 4+ will add repositories, services, controllers, routes, OTP flows, Razorpay, and admin APIs on top of this schema.
+**Stage 4: Repository Layer** — Prisma data access wrappers with no business logic.

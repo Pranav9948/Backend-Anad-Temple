@@ -76,11 +76,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const AdminScalarFieldEnum = {
   id: 'id',
-  email: 'email',
-  passwordHash: 'passwordHash',
   name: 'name',
+  mobile: 'mobile',
   role: 'role',
-  isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -90,12 +88,13 @@ export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof Ad
 
 export const BookingScalarFieldEnum = {
   id: 'id',
-  referenceNumber: 'referenceNumber',
-  language: 'language',
+  bookingNumber: 'bookingNumber',
   devoteeName: 'devoteeName',
   mobileNumber: 'mobileNumber',
-  status: 'status',
-  paymentOption: 'paymentOption',
+  language: 'language',
+  paymentStatus: 'paymentStatus',
+  totalAmount: 'totalAmount',
+  notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -106,9 +105,8 @@ export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeo
 export const BookingMemberScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
-  memberName: 'memberName',
+  name: 'name',
   nakshatra: 'nakshatra',
-  sortOrder: 'sortOrder',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -119,14 +117,11 @@ export type BookingMemberScalarFieldEnum = (typeof BookingMemberScalarFieldEnum)
 export const PaymentScalarFieldEnum = {
   id: 'id',
   bookingId: 'bookingId',
-  amountPaise: 'amountPaise',
-  currency: 'currency',
-  status: 'status',
+  amount: 'amount',
   method: 'method',
-  gatewayOrderId: 'gatewayOrderId',
-  gatewayPaymentId: 'gatewayPaymentId',
+  transactionId: 'transactionId',
+  status: 'status',
   paidAt: 'paidAt',
-  adminNotes: 'adminNotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -136,13 +131,12 @@ export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeo
 
 export const OTPScalarFieldEnum = {
   id: 'id',
-  mobileNumber: 'mobileNumber',
+  mobile: 'mobile',
   otpHash: 'otpHash',
-  purpose: 'purpose',
   status: 'status',
-  attemptCount: 'attemptCount',
+  verified: 'verified',
+  attempts: 'attempts',
   expiresAt: 'expiresAt',
-  verifiedAt: 'verifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -10,80 +10,46 @@
 */
 
 export const Language = {
-  KANNADA: 'KANNADA',
   ENGLISH: 'ENGLISH',
-  TELUGU: 'TELUGU',
+  MALAYALAM: 'MALAYALAM',
   TAMIL: 'TAMIL',
-  HINDI: 'HINDI',
-  MALAYALAM: 'MALAYALAM'
+  TELUGU: 'TELUGU',
+  HINDI: 'HINDI'
 } as const
 
 export type Language = (typeof Language)[keyof typeof Language]
 
 
-export const AdminRole = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  ADMIN: 'ADMIN'
-} as const
-
-export type AdminRole = (typeof AdminRole)[keyof typeof AdminRole]
-
-
-export const BookingStatus = {
-  PENDING_PAYMENT: 'PENDING_PAYMENT',
-  CONFIRMED: 'CONFIRMED',
-  CANCELLED: 'CANCELLED'
-} as const
-
-export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus]
-
-
-export const BookingPaymentOption = {
-  PAY_ONLINE: 'PAY_ONLINE',
-  PAY_LATER: 'PAY_LATER'
-} as const
-
-export type BookingPaymentOption = (typeof BookingPaymentOption)[keyof typeof BookingPaymentOption]
-
-
 export const PaymentStatus = {
   PENDING: 'PENDING',
-  PAID: 'PAID',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED',
-  WAIVED: 'WAIVED'
+  PAID: 'PAID'
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
 
 export const PaymentMethod = {
-  RAZORPAY: 'RAZORPAY',
-  CASH: 'CASH',
-  UPI: 'UPI',
-  BANK_TRANSFER: 'BANK_TRANSFER',
-  OTHER: 'OTHER'
+  ONLINE: 'ONLINE',
+  CASH: 'CASH'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
 
 
+export const AdminRole = {
+  ADMIN: 'ADMIN'
+} as const
+
+export type AdminRole = (typeof AdminRole)[keyof typeof AdminRole]
+
+
 export const OTPStatus = {
   PENDING: 'PENDING',
   VERIFIED: 'VERIFIED',
-  EXPIRED: 'EXPIRED',
-  FAILED: 'FAILED'
+  EXPIRED: 'EXPIRED'
 } as const
 
 export type OTPStatus = (typeof OTPStatus)[keyof typeof OTPStatus]
-
-
-export const OTPPurpose = {
-  BOOKING_VERIFICATION: 'BOOKING_VERIFICATION',
-  ADMIN_LOGIN: 'ADMIN_LOGIN'
-} as const
-
-export type OTPPurpose = (typeof OTPPurpose)[keyof typeof OTPPurpose]
 
 
 export const Nakshatra = {
