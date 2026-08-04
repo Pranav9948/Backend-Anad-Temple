@@ -3,6 +3,7 @@ import type {
   BookingMember,
   Language,
   Nakshatra,
+  Payment,
   PaymentMethod,
 } from '@/generated/prisma/client.js';
 import { PaymentStatus } from '@/generated/prisma/client.js';
@@ -11,9 +12,12 @@ import {
   BookingNotFoundError,
   BusinessRuleViolationError,
   CANCELLED_BOOKING_PREFIX,
+  CHECKED_OUT_BOOKING_PREFIX,
   DuplicateBookingError,
   isBookingCancelled,
+  isBookingCheckedOut,
 } from '@/domain/errors.js';
+import { BOOKING_PLACEHOLDER_AMOUNT_PAISE } from '@/domain/booking.constants.js';
 import { generateUniqueBookingNumber } from '@/domain/helpers.js';
 import {
   BookingRepository,
@@ -57,13 +61,29 @@ export type BookingDetail = Booking & {
   members: BookingMember[];
 };
 
+export type BookingDetailsResponse = BookingDetail & {
+  payment: Payment | null;
+};
+
+export type CreateInitialBookingInput = {
+  devoteeName: string;
+  mobileNumber: string;
+  language: Language;
+};
+
 export interface IBookingService {
+  createInitialBooking(input: CreateInitialBookingInput): Promise<Booking>;
+  checkoutWithoutPayment(bookingId: string): Promise<BookingDetailsResponse>;
+  getBookingDetails(id: string): Promise<BookingDetailsResponse>;
   createBooking(input: CreateBookingInput): Promise<BookingDetail>;
   addBookingMember(
     bookingId: string,
     member: CreateBookingMemberInput,
   ): Promise<BookingMember>;
-  removeBookingMember(bookingId: string, memberId: string): Promise<BookingMember>;
+  removeBookingMember(
+    bookingId: string,
+    memberId: string,
+  ): Promise<BookingMember>;
   updateBooking(id: string, data: BookingUpdateData): Promise<Booking>;
   getBooking(id: string): Promise<BookingDetail>;
   getBookingByMobile(mobileNumber: string): Promise<Booking[]>;
@@ -82,6 +102,71 @@ export class BookingService implements IBookingService {
     private readonly payments: IPaymentRepository = paymentRepository,
   ) {}
 
+  async createInitialBooking(
+    input: CreateInitialBookingInput,
+  ): Promise<Booking> {
+    const bookingNumber = await generateUniqueBookingNumber(
+      async (candidate) => {
+        const existing = await this.bookings.findByBookingNumber(candidate);
+        return existing !== null;
+      },
+    );
+
+    const duplicate = await this.bookings.findByBookingNumber(bookingNumber);
+    if (duplicate) {
+      throw new DuplicateBookingError(bookingNumber);
+    }
+
+    return this.bookings.create({
+      bookingNumber,
+      devoteeName: input.devoteeName.trim(),
+      mobileNumber: input.mobileNumber,
+      language: input.language,
+      paymentStatus: PaymentStatus.PENDING,
+      totalAmount: BOOKING_PLACEHOLDER_AMOUNT_PAISE,
+    });
+  }
+
+  async getBookingDetails(id: string): Promise<BookingDetailsResponse> {
+    const booking = await this.getBooking(id);
+    const payment = await this.payments.findByBookingId(id);
+    return { ...booking, payment };
+  }
+
+  async checkoutWithoutPayment(
+    bookingId: string,
+  ): Promise<BookingDetailsResponse> {
+    const booking = await this.getBooking(bookingId);
+
+    if (isBookingCancelled(booking.notes)) {
+      throw new BookingAlreadyCancelledError(bookingId);
+    }
+
+    if (isBookingCheckedOut(booking.notes)) {
+      throw new BusinessRuleViolationError(
+        'Booking has already been checked out',
+      );
+    }
+
+    if (booking.members.length === 0) {
+      throw new BusinessRuleViolationError(
+        'At least one Archana member is required before checkout',
+      );
+    }
+
+    const checkoutNote = `${CHECKED_OUT_BOOKING_PREFIX} ${new Date().toISOString()}`;
+    const notes = booking.notes
+      ? `${checkoutNote}\n${booking.notes}`
+      : checkoutNote;
+
+    await this.bookings.update(bookingId, {
+      notes,
+      paymentStatus: PaymentStatus.PENDING,
+    });
+
+    return this.getBookingDetails(bookingId);
+  }
+
   async createBooking(input: CreateBookingInput): Promise<BookingDetail> {
     if (input.members.length === 0) {
       throw new BusinessRuleViolationError(
@@ -90,13 +175,17 @@ export class BookingService implements IBookingService {
     }
 
     if (input.totalAmount <= 0) {
-      throw new BusinessRuleViolationError('Total amount must be greater than zero');
+      throw new BusinessRuleViolationError(
+        'Total amount must be greater than zero',
+      );
     }
 
-    const bookingNumber = await generateUniqueBookingNumber(async (candidate) => {
-      const existing = await this.bookings.findByBookingNumber(candidate);
-      return existing !== null;
-    });
+    const bookingNumber = await generateUniqueBookingNumber(
+      async (candidate) => {
+        const existing = await this.bookings.findByBookingNumber(candidate);
+        return existing !== null;
+      },
+    );
 
     const duplicate = await this.bookings.findByBookingNumber(bookingNumber);
     if (duplicate) {
@@ -136,7 +225,9 @@ export class BookingService implements IBookingService {
         });
       }
 
-      const createdMembers = await memberRepo.findByBookingId(createdBooking.id);
+      const createdMembers = await memberRepo.findByBookingId(
+        createdBooking.id,
+      );
       return { ...createdBooking, members: createdMembers };
     });
   }

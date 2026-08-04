@@ -112,7 +112,12 @@ export class BusinessRuleViolationError extends DomainError {
 }
 
 export const CANCELLED_BOOKING_PREFIX = '[CANCELLED]';
+export const CHECKED_OUT_BOOKING_PREFIX = '[CHECKED_OUT]';
 
 export function isBookingCancelled(notes: string | null | undefined): boolean {
   return (notes ?? '').startsWith(CANCELLED_BOOKING_PREFIX);
+}
+
+export function isBookingCheckedOut(notes: string | null | undefined): boolean {
+  return (notes ?? '').includes(CHECKED_OUT_BOOKING_PREFIX);
 }

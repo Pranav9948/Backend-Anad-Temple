@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '@/generated/prisma/client.js';
+import { DomainError } from '@/domain/errors.js';
 import { HttpException, ErrorCode } from '@/exceptions/root.js';
 import { logger } from '@/core/logger.js';
+import { mapDomainErrorToHttp } from '@/utils/domain-error-mapper.js';
 
 export const errorMiddleware = (
   error: unknown,
@@ -41,6 +43,31 @@ export const errorMiddleware = (
     } else {
       logger.warn({ msg: 'Client error', ...baseLog });
     }
+
+    res.status(statusCode).json({
+      success: false,
+      message,
+      errorCode,
+      errors,
+    });
+    return;
+  }
+
+  if (error instanceof DomainError) {
+    const mapped = mapDomainErrorToHttp(error);
+    statusCode = mapped.statusCode;
+    message = error.message;
+    errorCode = mapped.errorCode;
+    errors = { code: error.code };
+
+    logger.warn({
+      msg: 'Domain error',
+      requestId,
+      statusCode,
+      errorCode: error.code,
+      message,
+      userId,
+    });
 
     res.status(statusCode).json({
       success: false,
