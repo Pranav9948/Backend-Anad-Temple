@@ -25,6 +25,7 @@ enum Language {
 enum PaymentStatus {
   PENDING
   PAID
+  FAILED
 }
 
 enum PaymentMethod {
@@ -130,10 +131,12 @@ model BookingMember {
 model Payment {
   id            String        @id @default(uuid()) @db.Uuid
   bookingId     String        @unique @map("booking_id") @db.Uuid
-  amount        Int
-  method        PaymentMethod
-  transactionId String?       @unique @map("transaction_id") @db.VarChar(255)
-  status        PaymentStatus @default(PENDING)
+  amount             Int
+  method             PaymentMethod
+  transactionId      String?       @unique @map("transaction_id") @db.VarChar(255)
+  gatewayOrderId     String?       @unique @map("gateway_order_id") @db.VarChar(255)
+  gatewayPaymentId   String?       @unique @map("gateway_payment_id") @db.VarChar(255)
+  status             PaymentStatus @default(PENDING)
   paidAt        DateTime?     @map("paid_at") @db.Timestamptz(3)
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -141,6 +144,8 @@ model Payment {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
   @@index([status])
+  @@index([gatewayOrderId])
+  @@index([gatewayPaymentId])
   @@index([createdAt(sort: Desc)])
   @@map("payments")
 }

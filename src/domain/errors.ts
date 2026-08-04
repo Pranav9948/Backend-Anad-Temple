@@ -111,6 +111,46 @@ export class BusinessRuleViolationError extends DomainError {
   }
 }
 
+export class PaymentAlreadyCompletedError extends DomainError {
+  readonly code = 'PAYMENT_ALREADY_COMPLETED';
+
+  constructor(bookingId: string) {
+    super(`Payment already completed for booking: ${bookingId}`);
+  }
+}
+
+export class InvalidPaymentSignatureError extends DomainError {
+  readonly code = 'INVALID_PAYMENT_SIGNATURE';
+
+  constructor() {
+    super('Invalid Razorpay payment signature');
+  }
+}
+
+export class PaymentVerificationFailedError extends DomainError {
+  readonly code = 'PAYMENT_VERIFICATION_FAILED';
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class RazorpayOrderCreationError extends DomainError {
+  readonly code = 'RAZORPAY_ORDER_CREATION_FAILED';
+
+  constructor(message: string) {
+    super(`Failed to create Razorpay order: ${message}`);
+  }
+}
+
+export class InvalidWebhookSignatureError extends DomainError {
+  readonly code = 'INVALID_WEBHOOK_SIGNATURE';
+
+  constructor() {
+    super('Invalid Razorpay webhook signature');
+  }
+}
+
 export const CANCELLED_BOOKING_PREFIX = '[CANCELLED]';
 export const CHECKED_OUT_BOOKING_PREFIX = '[CHECKED_OUT]';
 
