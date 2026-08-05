@@ -72,11 +72,16 @@ export function toPublicBookingDetails(details: BookingDetailsResponse) {
 }
 
 export function toCheckoutSummary(details: BookingDetailsResponse) {
+  const memberCount = details.members.length;
+  const totalRupees = (details.totalAmount / 100).toFixed(
+    details.totalAmount % 100 === 0 ? 0 : 2,
+  );
+
   return {
     booking: toPublicBooking(details),
     members: details.members.map(toPublicMember),
     paymentStatus: details.paymentStatus,
-    memberCount: details.members.length,
-    message: 'Booking checked out successfully. Payment status remains PENDING.',
+    memberCount,
+    message: `Booking created successfully for ${memberCount} member(s). Total amount: ₹${totalRupees}. Payment status remains PENDING.`,
   };
 }

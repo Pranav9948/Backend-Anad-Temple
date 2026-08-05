@@ -17,7 +17,9 @@ import {
   isBookingCancelled,
   isBookingCheckedOut,
 } from '@/domain/errors.js';
-import { BOOKING_PLACEHOLDER_AMOUNT_PAISE } from '@/domain/booking.constants.js';
+import {
+  calculateHomamTotalPaise,
+} from '@/domain/booking.constants.js';
 import { generateUniqueBookingNumber } from '@/domain/helpers.js';
 import {
   BookingRepository,
@@ -128,7 +130,7 @@ export class BookingService implements IBookingService {
       mobileNumber: input.mobileNumber,
       language: input.language,
       paymentStatus: PaymentStatus.PENDING,
-      totalAmount: BOOKING_PLACEHOLDER_AMOUNT_PAISE,
+      totalAmount: 0,
     });
   }
 
@@ -167,6 +169,7 @@ export class BookingService implements IBookingService {
     await this.bookings.update(bookingId, {
       notes,
       paymentStatus: PaymentStatus.PENDING,
+      totalAmount: calculateHomamTotalPaise(booking.members.length),
     });
 
     const details = await this.getBookingDetails(bookingId);
@@ -267,11 +270,18 @@ export class BookingService implements IBookingService {
   ): Promise<BookingMember> {
     const booking = await this.requireActiveBooking(bookingId);
 
-    return this.members.create({
+    const created = await this.members.create({
       name: member.name,
       nakshatra: member.nakshatra,
       booking: { connect: { id: booking.id } },
     });
+
+    const members = await this.members.findByBookingId(bookingId);
+    await this.bookings.update(bookingId, {
+      totalAmount: calculateHomamTotalPaise(members.length),
+    });
+
+    return created;
   }
 
   async removeBookingMember(
@@ -295,7 +305,12 @@ export class BookingService implements IBookingService {
       );
     }
 
-    return this.members.delete(memberId);
+    const deleted = await this.members.delete(memberId);
+    await this.bookings.update(bookingId, {
+      totalAmount: calculateHomamTotalPaise(members.length - 1),
+    });
+
+    return deleted;
   }
 
   async updateBooking(id: string, data: BookingUpdateData): Promise<Booking> {

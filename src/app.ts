@@ -1,77 +1,109 @@
-import express, { type Express } from 'express';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
-import routes from './routes/v1/index.js';
-import paymentWebhookRoutes from './routes/v1/payment-webhook.routes.js';
-import { errorMiddleware } from './middlewares/error.middleware.js';
-import { NotFoundException } from './exceptions/exceptions.js';
-import { ErrorCode } from './exceptions/root.js';
-import { prisma } from './infra/db.js';
-import { requestContext } from './middlewares/request-context.middleware.js';
-import { requestLogger } from './middlewares/request-logger.middleware.js';
-import { corsMiddleware } from './core/cors.js';
-import { apiLimiter } from './core/rate-limit.js';
-import { requestTimeout } from './middlewares/timeout.middleware.js';
-
-export const app: Express = express();
-
-app.get('/health', async (_req, res) => {
-  const timestamp = new Date().toISOString();
-  const uptime = process.uptime();
-
-  let dbOk = false;
-
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    dbOk = true;
-  } catch {
-    dbOk = false;
-  }
-
-  const status = dbOk ? 'ok' : 'degraded';
-  res.status(status === 'ok' ? 200 : 503).json({
-    status,
-    service: 'temple-backend',
-    timestamp,
-    uptime,
-    dependencies: {
-      database: dbOk ? 'connected' : 'disconnected',
-    },
-  });
-});
-
-app.disable('x-powered-by');
-
-// Razorpay webhook requires raw body for signature verification (before JSON parser)
-app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/v1/payments', paymentWebhookRoutes);
-
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-app.use(requestContext);
-app.use(requestLogger);
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  }),
-);
-app.use(cookieParser());
-app.use(corsMiddleware);
-app.use(requestTimeout(30_000));
-app.use('/api', apiLimiter);
-app.use('/api/v1', routes);
-
-app.all('{*path}', (req, _res, next) => {
-  next(
-    new NotFoundException(
-      `Route ${req.originalUrl} not found`,
-      ErrorCode.NOT_FOUND,
-    ),
-  );
-});
-
-app.use(errorMiddleware);
-
-export default app;
-
+import express, { type Express } from 'express';
+
+import cookieParser from 'cookie-parser';
+
+import helmet from 'helmet';
+
+import routes from './routes/v1/index.js';
+
+import paymentWebhookRoutes from './routes/v1/payment-webhook.routes.js';
+
+import { errorMiddleware } from './middlewares/error.middleware.js';
+
+import { NotFoundException } from './exceptions/exceptions.js';
+
+import { ErrorCode } from './exceptions/root.js';
+
+import { prisma } from './infra/db.js';
+
+import { requestContext } from './middlewares/request-context.middleware.js';
+
+import { requestLogger } from './middlewares/request-logger.middleware.js';
+
+import { corsMiddleware } from './core/cors.js';
+
+import { apiLimiter } from './core/rate-limit.js';
+
+import { requestTimeout } from './middlewares/timeout.middleware.js';
+
+export const app: Express = express();
+
+app.get('/health', async (_req, res) => {
+  const timestamp = new Date().toISOString();
+
+  const uptime = process.uptime();
+
+  let dbOk = false;
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+
+    dbOk = true;
+  } catch {
+    dbOk = false;
+  }
+
+  const status = dbOk ? 'ok' : 'degraded';
+
+  res.status(status === 'ok' ? 200 : 503).json({
+    status,
+
+    service: 'temple-backend',
+
+    timestamp,
+
+    uptime,
+
+    dependencies: {
+      database: dbOk ? 'connected' : 'disconnected',
+    },
+  });
+});
+
+app.disable('x-powered-by');
+
+// Razorpay webhook requires raw body for signature verification (before JSON parser)
+
+app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
+
+app.use('/api/v1/payments', paymentWebhookRoutes);
+
+app.use(express.json({ limit: '1mb' }));
+
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+app.use(requestContext);
+
+app.use(requestLogger);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
+app.use(cookieParser());
+
+app.use(corsMiddleware);
+
+app.use(requestTimeout(30_000));
+
+app.use('/api', apiLimiter);
+
+app.use('/api/v1', routes);
+
+app.all('{*path}', (req, _res, next) => {
+  next(
+    new NotFoundException(
+      `Route ${req.originalUrl} not found`,
+
+      ErrorCode.NOT_FOUND,
+    ),
+  );
+});
+
+app.use(errorMiddleware);
+
+export default app;
