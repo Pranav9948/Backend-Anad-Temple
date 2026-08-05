@@ -16,7 +16,11 @@ import {
 
 const router: ExpressRouter = Router();
 
-router.post('/', validate(createBookingSchema), bookingController.createBooking);
+router.post(
+  '/',
+  validate(createBookingSchema),
+  bookingController.createBooking,
+);
 
 router.get(
   '/mobile/:mobile',

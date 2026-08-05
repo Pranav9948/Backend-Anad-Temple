@@ -1,4 +1,14 @@
-import type { Language, PaymentMethod, PaymentStatus } from '@/generated/prisma/client.js';
+import type {
+  Language,
+  Nakshatra,
+  PaymentMethod,
+  PaymentStatus,
+} from '@/generated/prisma/client.js';
+
+export type BookingCreatedMemberPayload = {
+  name: string;
+  nakshatra: Nakshatra;
+};
 
 export type BookingCreatedNotificationPayload = {
   bookingNumber: string;
@@ -6,8 +16,10 @@ export type BookingCreatedNotificationPayload = {
   mobileNumber: string;
   language: Language;
   memberCount: number;
+  members: BookingCreatedMemberPayload[];
   paymentStatus: PaymentStatus;
   bookingTime: Date;
+  totalAmountPaise?: number;
 };
 
 export type PaymentSuccessNotificationPayload = {
@@ -25,6 +37,12 @@ export type PaymentFailedNotificationPayload = {
   failureStatus: string;
 };
 
+export type EmailMessage = {
+  subject: string;
+  text: string;
+  html: string;
+};
+
 export interface INotificationService {
   notifyBookingCreated(payload: BookingCreatedNotificationPayload): Promise<void>;
   notifyPaymentSuccess(payload: PaymentSuccessNotificationPayload): Promise<void>;
@@ -32,6 +50,6 @@ export interface INotificationService {
   notifyAdminOtp(otp: string, expiryMinutes: number): Promise<void>;
 }
 
-export interface IWhatsAppProvider {
-  sendTextMessage(to: string, body: string): Promise<void>;
+export interface IEmailProvider {
+  sendEmail(to: string, message: EmailMessage): Promise<void>;
 }

@@ -129,7 +129,7 @@ export class AdminAuthService implements IAdminAuthService {
     const result: SendOtpResult = {
       mobile,
       expiresAt,
-      message: 'OTP sent to temple admin WhatsApp number',
+      message: 'OTP sent to temple admin email',
     };
 
     if (config.NODE_ENV === 'development') {

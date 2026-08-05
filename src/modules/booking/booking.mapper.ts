@@ -82,6 +82,6 @@ export function toCheckoutSummary(details: BookingDetailsResponse) {
     members: details.members.map(toPublicMember),
     paymentStatus: details.paymentStatus,
     memberCount,
-    message: `Booking created successfully for ${memberCount} member(s). Total amount: ₹${totalRupees}. Payment status remains PENDING.`,
+    message: `Booking created successfully for ${memberCount} member(s). Total amount: ₹${totalRupees}. Please pay in cash at the temple. Payment status remains PENDING.`,
   };
 }

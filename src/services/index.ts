@@ -21,13 +21,6 @@ export {
 } from '@/modules/booking-member/bookingMember.service.js';
 
 export {
-  paymentService,
-  PaymentService,
-  type CreatePaymentRecordInput,
-  type IPaymentService,
-} from '@/modules/payment/payment.service.js';
-
-export {
   otpService,
   OtpService,
   type GeneratedOtpResult,

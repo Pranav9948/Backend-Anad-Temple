@@ -134,10 +134,7 @@ export class AdminBookingService implements IAdminBookingService {
         bookingNumber: booking.bookingNumber,
         amountPaise: result.payment.amount,
         paymentMethod: result.payment.method,
-        paymentId:
-          result.payment.gatewayPaymentId ??
-          result.payment.transactionId ??
-          result.payment.id,
+        paymentId: result.payment.transactionId ?? result.payment.id,
         transactionTime: result.payment.paidAt ?? new Date(),
       });
 
@@ -209,9 +206,7 @@ export class AdminBookingService implements IAdminBookingService {
           payment = await paymentRepo.update(payment.id, {
             status: PaymentStatus.PAID,
             paidAt: new Date(),
-            ...(payment.method === PaymentMethod.ONLINE
-              ? {}
-              : { method: PaymentMethod.CASH }),
+            method: PaymentMethod.CASH,
             transactionId: payment.transactionId ?? `manual-${Date.now()}`,
           });
         }

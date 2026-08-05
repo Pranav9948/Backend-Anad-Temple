@@ -38,8 +38,6 @@ export function toAdminPaymentDetails(payment: Payment | null) {
     method: payment.method,
     status: payment.status,
     transactionId: payment.transactionId,
-    gatewayOrderId: payment.gatewayOrderId,
-    gatewayPaymentId: payment.gatewayPaymentId,
     paidAt: payment.paidAt,
     createdAt: payment.createdAt,
     updatedAt: payment.updatedAt,

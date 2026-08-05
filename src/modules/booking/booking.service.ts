@@ -180,8 +180,13 @@ export class BookingService implements IBookingService {
       mobileNumber: details.mobileNumber,
       language: details.language,
       memberCount: details.members.length,
+      members: details.members.map((member) => ({
+        name: member.name,
+        nakshatra: member.nakshatra,
+      })),
       paymentStatus: details.paymentStatus,
       bookingTime: details.createdAt,
+      totalAmountPaise: details.totalAmount,
     });
 
     return details;
@@ -257,8 +262,13 @@ export class BookingService implements IBookingService {
       mobileNumber: bookingDetail.mobileNumber,
       language: bookingDetail.language,
       memberCount: bookingDetail.members.length,
+      members: bookingDetail.members.map((member) => ({
+        name: member.name,
+        nakshatra: member.nakshatra,
+      })),
       paymentStatus: bookingDetail.paymentStatus,
       bookingTime: bookingDetail.createdAt,
+      totalAmountPaise: bookingDetail.totalAmount,
     });
 
     return bookingDetail;
