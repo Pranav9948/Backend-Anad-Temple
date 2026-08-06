@@ -13,6 +13,7 @@ const LANGUAGE_LABELS: Record<Language, string> = {
   TAMIL: 'Tamil',
   TELUGU: 'Telugu',
   HINDI: 'Hindi',
+  KANNADA: 'Kannada',
 };
 
 const BRAND = {
