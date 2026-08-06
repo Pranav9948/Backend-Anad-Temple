@@ -12,7 +12,10 @@ export type OtpUpdateData = Prisma.OTPUpdateInput;
 export interface IOtpRepository {
   create(data: OtpCreateData): Promise<OTP>;
   findLatestByMobile(mobile: string): Promise<OTP | null>;
+  findPendingByMobile(mobile: string): Promise<OTP | null>;
   verify(id: string): Promise<OTP>;
+  markAsExpired(id: string): Promise<OTP>;
+  expirePendingByMobile(mobile: string): Promise<Prisma.BatchPayload>;
   deleteExpired(before?: Date): Promise<Prisma.BatchPayload>;
   incrementAttempts(id: string): Promise<OTP>;
 }
@@ -25,6 +28,13 @@ export class OtpRepository extends BaseRepository implements IOtpRepository {
   findLatestByMobile(mobile: string): Promise<OTP | null> {
     return this.db.oTP.findFirst({
       where: { mobile },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findPendingByMobile(mobile: string): Promise<OTP | null> {
+    return this.db.oTP.findFirst({
+      where: { mobile, status: OTPStatus.PENDING },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -44,6 +54,27 @@ export class OtpRepository extends BaseRepository implements IOtpRepository {
       }
       throw error;
     }
+  }
+
+  async markAsExpired(id: string): Promise<OTP> {
+    try {
+      return await this.db.oTP.update({
+        where: { id },
+        data: { status: OTPStatus.EXPIRED },
+      });
+    } catch (error) {
+      if (isPrismaNotFoundError(error)) {
+        throw new RepositoryNotFoundError('OTP', id);
+      }
+      throw error;
+    }
+  }
+
+  expirePendingByMobile(mobile: string): Promise<Prisma.BatchPayload> {
+    return this.db.oTP.updateMany({
+      where: { mobile, status: OTPStatus.PENDING },
+      data: { status: OTPStatus.EXPIRED },
+    });
   }
 
   deleteExpired(before: Date = new Date()): Promise<Prisma.BatchPayload> {
