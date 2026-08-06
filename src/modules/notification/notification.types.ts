@@ -29,6 +29,7 @@ export interface INotificationService {
   notifyBookingCreated(payload: BookingCreatedNotificationPayload): Promise<void>;
   notifyPaymentSuccess(payload: PaymentSuccessNotificationPayload): Promise<void>;
   notifyPaymentFailed(payload: PaymentFailedNotificationPayload): Promise<void>;
+  notifyAdminOtp(otp: string, expiryMinutes: number): Promise<void>;
 }
 
 export interface IWhatsAppProvider {

@@ -16,6 +16,8 @@ export const logger = pino({
       'body.token',
       'body.refreshToken',
       'body.accessToken',
+      'body.otp',
+      'body.devOtp',
       'cookies.refreshToken',
       'refreshToken',
       'accessToken',

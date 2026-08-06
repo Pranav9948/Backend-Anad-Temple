@@ -10,6 +10,7 @@ import {
   buildBookingCreatedMessage,
   buildPaymentFailedMessage,
   buildPaymentSuccessMessage,
+  buildAdminOtpMessage,
 } from '@/modules/notification/notification.templates.js';
 import type {
   BookingCreatedNotificationPayload,
@@ -69,6 +70,14 @@ export class NotificationService implements INotificationService {
       NOTIFICATION_TYPES.PAYMENT_FAILED,
       buildPaymentFailedMessage(payload),
       { bookingNumber: payload.bookingNumber },
+    );
+  }
+
+  async notifyAdminOtp(otp: string, expiryMinutes: number): Promise<void> {
+    await this.sendBestEffort(
+      NOTIFICATION_TYPES.ADMIN_OTP,
+      buildAdminOtpMessage(otp, expiryMinutes),
+      { purpose: 'admin_login' },
     );
   }
 

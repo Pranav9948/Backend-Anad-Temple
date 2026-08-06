@@ -40,4 +40,10 @@ export {
   type INotificationService,
 } from '@/modules/notification/notification.service.js';
 
+export {
+  adminAuthService,
+  AdminAuthService,
+  type IAdminAuthService,
+} from '@/modules/admin/admin-auth.service.js';
+
 export * from '@/domain/errors.js';
