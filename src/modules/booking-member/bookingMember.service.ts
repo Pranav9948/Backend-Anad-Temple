@@ -1,4 +1,5 @@
 import type { BookingMember, Nakshatra } from '@/generated/prisma/client.js';
+import { calculateHomamTotalPaise } from '@/domain/booking.constants.js';
 import {
   BookingAlreadyCancelledError,
   BookingNotFoundError,
@@ -44,11 +45,14 @@ export class BookingMemberService implements IBookingMemberService {
       throw new BusinessRuleViolationError('Member name is required');
     }
 
-    return this.members.create({
+    const created = await this.members.create({
       name: input.name.trim(),
       nakshatra: input.nakshatra,
       booking: { connect: { id: bookingId } },
     });
+
+    await this.syncBookingAmount(bookingId);
+    return created;
   }
 
   async updateMember(
@@ -79,12 +83,21 @@ export class BookingMemberService implements IBookingMemberService {
       );
     }
 
-    return this.members.delete(memberId);
+    const deleted = await this.members.delete(memberId);
+    await this.syncBookingAmount(bookingId);
+    return deleted;
   }
 
   async listMembers(bookingId: string): Promise<BookingMember[]> {
     await this.requireBookingExists(bookingId);
     return this.members.findByBookingId(bookingId);
+  }
+
+  private async syncBookingAmount(bookingId: string): Promise<void> {
+    const members = await this.members.findByBookingId(bookingId);
+    await this.bookings.update(bookingId, {
+      totalAmount: calculateHomamTotalPaise(members.length),
+    });
   }
 
   private async requireBookingExists(bookingId: string): Promise<void> {

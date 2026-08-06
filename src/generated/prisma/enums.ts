@@ -14,7 +14,8 @@ export const Language = {
   MALAYALAM: 'MALAYALAM',
   TAMIL: 'TAMIL',
   TELUGU: 'TELUGU',
-  HINDI: 'HINDI'
+  HINDI: 'HINDI',
+  KANNADA: 'KANNADA'
 } as const
 
 export type Language = (typeof Language)[keyof typeof Language]

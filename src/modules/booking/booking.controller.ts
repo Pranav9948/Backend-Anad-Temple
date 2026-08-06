@@ -11,32 +11,40 @@ import { sendSuccess } from '@/utils/api-response.js';
 import { asyncHandler } from '@/utils/async-handler.js';
 import { getRouteParam } from '@/utils/route-params.js';
 
-export const createBooking: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { devoteeName, mobile, language } = req.body as {
-    devoteeName: string;
-    mobile: string;
-    language: Language;
-  };
+export const createBooking: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { devoteeName, mobile, language } = req.body as {
+      devoteeName: string;
+      mobile: string;
+      language: Language;
+    };
 
-  const booking = await bookingService.createInitialBooking({
-    devoteeName,
-    mobileNumber: mobile,
-    language,
-  });
+    const booking = await bookingService.createInitialBooking({
+      devoteeName,
+      mobileNumber: mobile,
+      language,
+    });
 
-  sendSuccess(
-    res,
-    toPublicBookingSummary(booking),
-    'Booking created successfully',
-    201,
-  );
-});
+    sendSuccess(
+      res,
+      toPublicBookingSummary(booking),
+      'Booking created successfully',
+      201,
+    );
+  },
+);
 
-export const getBookingById: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const details = await bookingService.getBookingDetails(bookingId);
-  sendSuccess(res, toPublicBookingDetails(details), 'Booking retrieved successfully');
-});
+export const getBookingById: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
+    const details = await bookingService.getBookingDetails(bookingId);
+    sendSuccess(
+      res,
+      toPublicBookingDetails(details),
+      'Booking retrieved successfully',
+    );
+  },
+);
 
 export const getBookingsByMobile: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
@@ -51,27 +59,31 @@ export const getBookingsByMobile: RequestHandler = asyncHandler(
   },
 );
 
-export const updateBooking: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const { devoteeName, language, notes, totalAmount } = req.body as {
-    devoteeName?: string;
-    language?: Language;
-    notes?: string;
-    totalAmount?: number;
-  };
+export const updateBooking: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
+    const { devoteeName, language, notes, totalAmount } = req.body as {
+      devoteeName?: string;
+      language?: Language;
+      notes?: string;
+      totalAmount?: number;
+    };
 
-  const booking = await bookingService.updateBooking(bookingId, {
-    ...(devoteeName !== undefined ? { devoteeName } : {}),
-    ...(language !== undefined ? { language } : {}),
-    ...(notes !== undefined ? { notes } : {}),
-    ...(totalAmount !== undefined ? { totalAmount } : {}),
-  });
+    const booking = await bookingService.updateBooking(bookingId, {
+      ...(devoteeName !== undefined ? { devoteeName } : {}),
+      ...(language !== undefined ? { language } : {}),
+      ...(notes !== undefined ? { notes } : {}),
+      ...(totalAmount !== undefined ? { totalAmount } : {}),
+    });
 
-  sendSuccess(res, toPublicBooking(booking), 'Booking updated successfully');
-});
+    sendSuccess(res, toPublicBooking(booking), 'Booking updated successfully');
+  },
+);
 
-export const checkoutBooking: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const details = await bookingService.checkoutWithoutPayment(bookingId);
-  sendSuccess(res, toCheckoutSummary(details), 'Booking checkout completed');
-});
+export const checkoutBooking: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
+    const details = await bookingService.checkoutWithoutPayment(bookingId);
+    sendSuccess(res, toCheckoutSummary(details), 'Booking checkout completed');
+  },
+);

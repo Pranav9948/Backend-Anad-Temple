@@ -6,52 +6,65 @@ import { sendSuccess } from '@/utils/api-response.js';
 import { asyncHandler } from '@/utils/async-handler.js';
 import { getRouteParam } from '@/utils/route-params.js';
 
-export const addMember: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const { personName, nakshatra } = req.body as {
-    personName: string;
-    nakshatra: Nakshatra;
-  };
+export const addMember: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
 
-  const member = await bookingMemberService.addMember(bookingId, {
-    name: personName,
-    nakshatra,
-  });
+    const { personName, nakshatra } = req.body as {
+      personName: string;
+      nakshatra: Nakshatra;
+    };
 
-  sendSuccess(res, toPublicMember(member), 'Member added successfully', 201);
-});
+    const member = await bookingMemberService.addMember(bookingId, {
+      name: personName,
+      nakshatra,
+    });
 
-export const listMembers: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const members = await bookingMemberService.listMembers(bookingId);
+    sendSuccess(res, toPublicMember(member), 'Member added successfully', 201);
+  },
+);
 
-  sendSuccess(
-    res,
-    members.map(toPublicMember),
-    'Members retrieved successfully',
-  );
-});
+export const listMembers: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
+    const members = await bookingMemberService.listMembers(bookingId);
 
-export const updateMember: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const memberId = getRouteParam(req.params.memberId);
-  const { personName, nakshatra } = req.body as {
-    personName?: string;
-    nakshatra?: Nakshatra;
-  };
+    sendSuccess(
+      res,
+      members.map(toPublicMember),
+      'Members retrieved successfully',
+    );
+  },
+);
 
-  const member = await bookingMemberService.updateMember(bookingId, memberId, {
-    ...(personName !== undefined ? { name: personName } : {}),
-    ...(nakshatra !== undefined ? { nakshatra } : {}),
-  });
+export const updateMember: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
+    const memberId = getRouteParam(req.params.memberId);
+    const { personName, nakshatra } = req.body as {
+      personName?: string;
+      nakshatra?: Nakshatra;
+    };
 
-  sendSuccess(res, toPublicMember(member), 'Member updated successfully');
-});
+    const member = await bookingMemberService.updateMember(
+      bookingId,
+      memberId,
+      {
+        ...(personName !== undefined ? { name: personName } : {}),
+        ...(nakshatra !== undefined ? { nakshatra } : {}),
+      },
+    );
 
-export const deleteMember: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = getRouteParam(req.params.bookingId);
-  const memberId = getRouteParam(req.params.memberId);
-  const member = await bookingMemberService.deleteMember(bookingId, memberId);
+    sendSuccess(res, toPublicMember(member), 'Member updated successfully');
+  },
+);
 
-  sendSuccess(res, toPublicMember(member), 'Member deleted successfully');
-});
+export const deleteMember: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const bookingId = getRouteParam(req.params.bookingId);
+    const memberId = getRouteParam(req.params.memberId);
+    const member = await bookingMemberService.deleteMember(bookingId, memberId);
+
+    sendSuccess(res, toPublicMember(member), 'Member deleted successfully');
+  },
+);

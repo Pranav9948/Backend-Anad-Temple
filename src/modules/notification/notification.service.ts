@@ -1,8 +1,6 @@
 import { config } from '@/core/config.js';
 import { logger } from '@/core/logger.js';
 import {
-  DEFAULT_WHATSAPP_RETRY_DELAY_MS,
-  DEFAULT_WHATSAPP_RETRY_MAX_ATTEMPTS,
   NOTIFICATION_TYPES,
   type NotificationType,
 } from '@/modules/notification/notification.constants.js';
@@ -14,20 +12,13 @@ import {
 } from '@/modules/notification/notification.templates.js';
 import type {
   BookingCreatedNotificationPayload,
+  EmailMessage,
+  IEmailProvider,
   INotificationService,
-  IWhatsAppProvider,
   PaymentFailedNotificationPayload,
   PaymentSuccessNotificationPayload,
 } from '@/modules/notification/notification.types.js';
-import { MetaWhatsAppProvider } from '@/modules/notification/meta.provider.js';
-
-function createWhatsAppProvider(): IWhatsAppProvider {
-  switch (config.WHATSAPP_PROVIDER) {
-    case 'META':
-    default:
-      return new MetaWhatsAppProvider();
-  }
-}
+import { SmtpEmailProvider } from '@/modules/notification/email.provider.js';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -37,10 +28,10 @@ function sleep(ms: number): Promise<void> {
 
 export class NotificationService implements INotificationService {
   constructor(
-    private readonly whatsappProvider: IWhatsAppProvider = createWhatsAppProvider(),
-    private readonly adminNumber: string = config.TEMPLE_ADMIN_WHATSAPP_NUMBER,
-    private readonly retryMaxAttempts: number = config.WHATSAPP_RETRY_MAX_ATTEMPTS,
-    private readonly retryDelayMs: number = config.WHATSAPP_RETRY_DELAY_MS,
+    private readonly emailProvider: IEmailProvider = new SmtpEmailProvider(),
+    private readonly adminEmail: string = config.TEMPLE_ADMIN_EMAIL,
+    private readonly retryMaxAttempts: number = config.EMAIL_RETRY_MAX_ATTEMPTS,
+    private readonly retryDelayMs: number = config.EMAIL_RETRY_DELAY_MS,
   ) {}
 
   async notifyBookingCreated(
@@ -83,37 +74,44 @@ export class NotificationService implements INotificationService {
 
   private async sendBestEffort(
     type: NotificationType,
-    message: string,
+    message: EmailMessage,
     context: Record<string, string>,
   ): Promise<void> {
-    logger.info({ type, ...context }, 'WhatsApp notification requested');
+    logger.info(
+      { type, to: this.adminEmail, ...context },
+      'Email notification requested',
+    );
 
     try {
       await this.sendWithRetry(type, message, context);
-      logger.info({ type, ...context }, 'WhatsApp notification sent');
+      logger.info(
+        { type, to: this.adminEmail, ...context },
+        'Email notification sent',
+      );
     } catch (error) {
       logger.error(
         {
           err: error,
           type,
+          to: this.adminEmail,
           ...context,
           attempts: this.retryMaxAttempts,
         },
-        'WhatsApp notification failed after retries',
+        'Email notification failed after retries',
       );
     }
   }
 
   private async sendWithRetry(
     type: NotificationType,
-    message: string,
+    message: EmailMessage,
     context: Record<string, string>,
   ): Promise<void> {
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= this.retryMaxAttempts; attempt++) {
       try {
-        await this.whatsappProvider.sendTextMessage(this.adminNumber, message);
+        await this.emailProvider.sendEmail(this.adminEmail, message);
         return;
       } catch (error) {
         lastError = error;
@@ -130,7 +128,7 @@ export class NotificationService implements INotificationService {
             maxAttempts: this.retryMaxAttempts,
             nextRetryInMs: this.retryDelayMs,
           },
-          'WhatsApp notification attempt failed — retrying',
+          'Email notification attempt failed — retrying',
         );
 
         await sleep(this.retryDelayMs);
@@ -139,7 +137,7 @@ export class NotificationService implements INotificationService {
 
     throw lastError instanceof Error
       ? lastError
-      : new Error('WhatsApp notification failed');
+      : new Error('Email notification failed');
   }
 }
 
