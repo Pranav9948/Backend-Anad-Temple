@@ -13,6 +13,9 @@ const allowedOrigins = new Set(
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
+    console.log('Incoming Origin:', origin);
+    console.log('Allowed:', allowedOrigins);
+
     // Allow non-browser clients (curl, server-to-server) and same-origin
     if (!origin || allowedOrigins.has(origin)) {
       return callback(null, true);
