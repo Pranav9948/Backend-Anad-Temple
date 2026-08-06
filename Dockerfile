@@ -23,5 +23,5 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/src/generated ./src/generated
-EXPOSE 4000
+EXPOSE 8080
 CMD ["node", "dist/server.js"]
