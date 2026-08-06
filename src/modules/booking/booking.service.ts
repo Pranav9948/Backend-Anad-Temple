@@ -36,6 +36,10 @@ import {
   type IPaymentRepository,
   paymentRepository,
 } from '@/modules/payment/payment.repository.js';
+import {
+  type INotificationService,
+  notificationService,
+} from '@/modules/notification/notification.service.js';
 import { runInTransaction } from '@/repositories/transaction.js';
 
 export type CreateBookingMemberInput = {
@@ -100,6 +104,7 @@ export class BookingService implements IBookingService {
     private readonly bookings: IBookingRepository = bookingRepository,
     private readonly members: IBookingMemberRepository = bookingMemberRepository,
     private readonly payments: IPaymentRepository = paymentRepository,
+    private readonly notifications: INotificationService = notificationService,
   ) {}
 
   async createInitialBooking(
@@ -164,7 +169,19 @@ export class BookingService implements IBookingService {
       paymentStatus: PaymentStatus.PENDING,
     });
 
-    return this.getBookingDetails(bookingId);
+    const details = await this.getBookingDetails(bookingId);
+
+    void this.notifications.notifyBookingCreated({
+      bookingNumber: details.bookingNumber,
+      devoteeName: details.devoteeName,
+      mobileNumber: details.mobileNumber,
+      language: details.language,
+      memberCount: details.members.length,
+      paymentStatus: details.paymentStatus,
+      bookingTime: details.createdAt,
+    });
+
+    return details;
   }
 
   async createBooking(input: CreateBookingInput): Promise<BookingDetail> {
@@ -192,7 +209,7 @@ export class BookingService implements IBookingService {
       throw new DuplicateBookingError(bookingNumber);
     }
 
-    return runInTransaction(async (tx) => {
+    const bookingDetail = await runInTransaction(async (tx) => {
       const bookingRepo = new BookingRepository(tx);
       const memberRepo = new BookingMemberRepository(tx);
       const paymentRepo = new PaymentRepository(tx);
@@ -230,6 +247,18 @@ export class BookingService implements IBookingService {
       );
       return { ...createdBooking, members: createdMembers };
     });
+
+    void this.notifications.notifyBookingCreated({
+      bookingNumber: bookingDetail.bookingNumber,
+      devoteeName: bookingDetail.devoteeName,
+      mobileNumber: bookingDetail.mobileNumber,
+      language: bookingDetail.language,
+      memberCount: bookingDetail.members.length,
+      paymentStatus: bookingDetail.paymentStatus,
+      bookingTime: bookingDetail.createdAt,
+    });
+
+    return bookingDetail;
   }
 
   async addBookingMember(

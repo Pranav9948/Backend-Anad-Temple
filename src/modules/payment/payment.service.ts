@@ -32,6 +32,10 @@ import {
   type IPaymentRepository,
   paymentRepository,
 } from '@/modules/payment/payment.repository.js';
+import {
+  type INotificationService,
+  notificationService,
+} from '@/modules/notification/notification.service.js';
 import { runInTransaction } from '@/repositories/transaction.js';
 import {
   verifyRazorpayPaymentSignature,
@@ -86,6 +90,7 @@ export class PaymentService implements IPaymentService {
     private readonly payments: IPaymentRepository = paymentRepository,
     private readonly bookings: IBookingRepository = bookingRepository,
     private readonly members: IBookingMemberRepository = bookingMemberRepository,
+    private readonly notifications: INotificationService = notificationService,
   ) {}
 
   async createRazorpayOrder(bookingId: string): Promise<RazorpayOrderResponse> {
@@ -200,6 +205,8 @@ export class PaymentService implements IPaymentService {
       return payment;
     }
 
+    const booking = await this.bookings.findById(input.bookingId);
+
     const completed = await runInTransaction(async (tx) => {
       const paymentRepo = new PaymentRepository(tx);
       const bookingRepo = new BookingRepository(tx);
@@ -222,6 +229,16 @@ export class PaymentService implements IPaymentService {
       },
       'Razorpay payment verified and completed',
     );
+
+    if (booking) {
+      void this.notifications.notifyPaymentSuccess({
+        bookingNumber: booking.bookingNumber,
+        amountPaise: completed.amount,
+        paymentMethod: completed.method,
+        paymentId: completed.gatewayPaymentId ?? input.razorpayPaymentId,
+        transactionTime: completed.paidAt ?? new Date(),
+      });
+    }
 
     return completed;
   }
@@ -255,6 +272,16 @@ export class PaymentService implements IPaymentService {
     });
 
     logger.warn({ bookingId, orderId: razorpayOrderId }, 'Payment marked as failed');
+
+    const booking = await this.bookings.findById(bookingId);
+    if (booking) {
+      void this.notifications.notifyPaymentFailed({
+        bookingNumber: booking.bookingNumber,
+        devoteeName: booking.devoteeName,
+        mobileNumber: booking.mobileNumber,
+        failureStatus: 'FAILED',
+      });
+    }
 
     return failed;
   }
@@ -449,6 +476,8 @@ export class PaymentService implements IPaymentService {
       throw new PaymentVerificationFailedError('Order ID mismatch in webhook');
     }
 
+    const booking = await this.bookings.findById(record.bookingId);
+
     await runInTransaction(async (tx) => {
       const paymentRepo = new PaymentRepository(tx);
       const bookingRepo = new BookingRepository(tx);
@@ -465,6 +494,16 @@ export class PaymentService implements IPaymentService {
       { bookingId: record.bookingId, orderId, razorpayPaymentId },
       'Webhook payment captured — marked paid',
     );
+
+    if (booking) {
+      void this.notifications.notifyPaymentSuccess({
+        bookingNumber: booking.bookingNumber,
+        amountPaise: record.amount,
+        paymentMethod: record.method,
+        paymentId: razorpayPaymentId,
+        transactionTime: new Date(),
+      });
+    }
   }
 
   private async handlePaymentFailed(payload: RazorpayWebhookPayload): Promise<void> {
