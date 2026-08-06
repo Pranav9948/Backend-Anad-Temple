@@ -23,6 +23,10 @@ const envSchema = z.object({
     .min(10, 'JWT_REFRESH_SECRET must be at least 10 characters long'),
 
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
+
+  RAZORPAY_KEY_ID: z.string().min(1, 'RAZORPAY_KEY_ID is required'),
+  RAZORPAY_KEY_SECRET: z.string().min(1, 'RAZORPAY_KEY_SECRET is required'),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1, 'RAZORPAY_WEBHOOK_SECRET is required'),
 });
 
 const serviceRootDir = process.cwd();
