@@ -1,5 +1,5 @@
-// Temple Vinayaka Chathurthi Booking — Stage 3 domain schema
-// Brand-new schema for the temple domain (not reused from SaaS).
+// Temple Vinayaka Chathurthi Ganapathi Homam Booking — Stage 3
+// Brand-new domain schema (not reused from SaaS).
 
 generator client {
   provider = "prisma-client"
@@ -14,68 +14,35 @@ datasource db {
 // Enums
 // ---------------------------------------------------------------------------
 
-/// Language selected by the devotee for the booking form / communication.
 enum Language {
-  KANNADA
   ENGLISH
-  TELUGU
-  TAMIL
-  HINDI
   MALAYALAM
+  TAMIL
+  TELUGU
+  HINDI
 }
 
-/// Role for temple admin accounts.
-enum AdminRole {
-  SUPER_ADMIN
-  ADMIN
-}
-
-/// Lifecycle of a booking from checkout through confirmation or cancellation.
-enum BookingStatus {
-  PENDING_PAYMENT
-  CONFIRMED
-  CANCELLED
-}
-
-/// Whether the devotee chose to pay online now or book and pay later.
-enum BookingPaymentOption {
-  PAY_ONLINE
-  PAY_LATER
-}
-
-/// Payment lifecycle tracked by temple admin and/or payment gateway.
 enum PaymentStatus {
   PENDING
   PAID
-  FAILED
-  REFUNDED
-  WAIVED
 }
 
-/// How a booking was paid (online gateway or offline admin collection).
 enum PaymentMethod {
-  RAZORPAY
+  ONLINE
   CASH
-  UPI
-  BANK_TRANSFER
-  OTHER
 }
 
-/// OTP verification lifecycle for mobile-number flows.
+enum AdminRole {
+  ADMIN
+}
+
 enum OTPStatus {
   PENDING
   VERIFIED
   EXPIRED
-  FAILED
 }
 
-/// Why an OTP was issued.
-enum OTPPurpose {
-  BOOKING_VERIFICATION
-  ADMIN_LOGIN
-}
-
-/// The 27 lunar mansions used for Archana nakshatra selection.
+/// The 27 lunar mansions for Archana nakshatra selection.
 enum Nakshatra {
   ASHWINI
   BHARANI
@@ -110,50 +77,48 @@ enum Nakshatra {
 // Models
 // ---------------------------------------------------------------------------
 
-/// Temple staff who manage bookings and payments. Independent of bookings.
+/// Temple administrator — authenticates via mobile OTP (independent model).
 model Admin {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @map("password_hash") @db.VarChar(255)
-  name         String    @db.VarChar(255)
-  role         AdminRole @default(ADMIN)
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @db.VarChar(255)
+  mobile    String    @unique @db.VarChar(15)
+  role      AdminRole @default(ADMIN)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("admins")
 }
 
-/// A devotee booking for Vinayaka Chathurthi Archana.
+/// One devotee booking for Ganapathi Homam / Archana.
 model Booking {
-  id              String               @id @default(uuid()) @db.Uuid
-  referenceNumber String               @unique @map("reference_number") @db.VarChar(32)
-  language        Language
-  devoteeName     String               @map("devotee_name") @db.VarChar(255)
-  mobileNumber    String               @map("mobile_number") @db.VarChar(15)
-  status          BookingStatus        @default(PENDING_PAYMENT)
-  paymentOption   BookingPaymentOption @map("payment_option")
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String        @id @default(uuid()) @db.Uuid
+  bookingNumber String        @unique @map("booking_number") @db.VarChar(32)
+  devoteeName   String        @map("devotee_name") @db.VarChar(255)
+  mobileNumber  String        @map("mobile_number") @db.VarChar(15)
+  language      Language
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  totalAmount   Int           @map("total_amount")
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   members BookingMember[]
   payment Payment?
 
   @@index([mobileNumber])
-  @@index([status])
+  @@index([paymentStatus])
   @@index([createdAt(sort: Desc)])
   @@map("bookings")
 }
 
-/// An Archana member attached to a booking (name + nakshatra).
+/// An Archana member linked to a booking (name + nakshatra).
 model BookingMember {
-  id         String    @id @default(uuid()) @db.Uuid
-  bookingId  String    @map("booking_id") @db.Uuid
-  memberName String    @map("member_name") @db.VarChar(255)
-  nakshatra  Nakshatra
-  sortOrder  Int       @default(0) @map("sort_order")
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id        String    @id @default(uuid()) @db.Uuid
+  bookingId String    @map("booking_id") @db.Uuid
+  name      String    @db.VarChar(255)
+  nakshatra Nakshatra
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
@@ -161,20 +126,17 @@ model BookingMember {
   @@map("booking_members")
 }
 
-/// Optional payment record — at most one per booking (pay-online or admin-added later).
+/// Online or offline payment — at most one per booking.
 model Payment {
-  id               String        @id @default(uuid()) @db.Uuid
-  bookingId        String        @unique @map("booking_id") @db.Uuid
-  amountPaise      Int           @map("amount_paise")
-  currency         String        @default("INR") @db.Char(3)
-  status           PaymentStatus @default(PENDING)
-  method           PaymentMethod
-  gatewayOrderId   String?       @map("gateway_order_id") @db.VarChar(255)
-  gatewayPaymentId String?       @map("gateway_payment_id") @db.VarChar(255)
-  paidAt           DateTime?     @map("paid_at") @db.Timestamptz(3)
-  adminNotes       String?       @map("admin_notes") @db.Text
-  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String        @id @default(uuid()) @db.Uuid
+  bookingId     String        @unique @map("booking_id") @db.Uuid
+  amount        Int
+  method        PaymentMethod
+  transactionId String?       @unique @map("transaction_id") @db.VarChar(255)
+  status        PaymentStatus @default(PENDING)
+  paidAt        DateTime?     @map("paid_at") @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
@@ -183,20 +145,19 @@ model Payment {
   @@map("payments")
 }
 
-/// One-time password records for mobile verification. Independent of bookings.
+/// OTP record for admin mobile login (independent model).
 model OTP {
-  id           String     @id @default(uuid()) @db.Uuid
-  mobileNumber String     @map("mobile_number") @db.VarChar(15)
-  otpHash      String     @map("otp_hash") @db.VarChar(255)
-  purpose      OTPPurpose
-  status       OTPStatus  @default(PENDING)
-  attemptCount Int        @default(0) @map("attempt_count")
-  expiresAt    DateTime   @map("expires_at") @db.Timestamptz(3)
-  verifiedAt   DateTime?  @map("verified_at") @db.Timestamptz(3)
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id        String    @id @default(uuid()) @db.Uuid
+  mobile    String    @db.VarChar(15)
+  otpHash   String    @map("otp_hash") @db.VarChar(255)
+  status    OTPStatus @default(PENDING)
+  verified  Boolean   @default(false)
+  attempts  Int       @default(0)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@index([mobileNumber, status])
+  @@index([mobile, status])
   @@index([expiresAt])
   @@map("otps")
 }

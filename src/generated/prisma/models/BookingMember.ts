@@ -14,32 +14,21 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model BookingMember
- * An Archana member attached to a booking (name + nakshatra).
+ * An Archana member linked to a booking (name + nakshatra).
  */
 export type BookingMemberModel = runtime.Types.Result.DefaultSelection<Prisma.$BookingMemberPayload>
 
 export type AggregateBookingMember = {
   _count: BookingMemberCountAggregateOutputType | null
-  _avg: BookingMemberAvgAggregateOutputType | null
-  _sum: BookingMemberSumAggregateOutputType | null
   _min: BookingMemberMinAggregateOutputType | null
   _max: BookingMemberMaxAggregateOutputType | null
-}
-
-export type BookingMemberAvgAggregateOutputType = {
-  sortOrder: number | null
-}
-
-export type BookingMemberSumAggregateOutputType = {
-  sortOrder: number | null
 }
 
 export type BookingMemberMinAggregateOutputType = {
   id: string | null
   bookingId: string | null
-  memberName: string | null
+  name: string | null
   nakshatra: $Enums.Nakshatra | null
-  sortOrder: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -47,9 +36,8 @@ export type BookingMemberMinAggregateOutputType = {
 export type BookingMemberMaxAggregateOutputType = {
   id: string | null
   bookingId: string | null
-  memberName: string | null
+  name: string | null
   nakshatra: $Enums.Nakshatra | null
-  sortOrder: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -57,29 +45,19 @@ export type BookingMemberMaxAggregateOutputType = {
 export type BookingMemberCountAggregateOutputType = {
   id: number
   bookingId: number
-  memberName: number
+  name: number
   nakshatra: number
-  sortOrder: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
 
-export type BookingMemberAvgAggregateInputType = {
-  sortOrder?: true
-}
-
-export type BookingMemberSumAggregateInputType = {
-  sortOrder?: true
-}
-
 export type BookingMemberMinAggregateInputType = {
   id?: true
   bookingId?: true
-  memberName?: true
+  name?: true
   nakshatra?: true
-  sortOrder?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -87,9 +65,8 @@ export type BookingMemberMinAggregateInputType = {
 export type BookingMemberMaxAggregateInputType = {
   id?: true
   bookingId?: true
-  memberName?: true
+  name?: true
   nakshatra?: true
-  sortOrder?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -97,9 +74,8 @@ export type BookingMemberMaxAggregateInputType = {
 export type BookingMemberCountAggregateInputType = {
   id?: true
   bookingId?: true
-  memberName?: true
+  name?: true
   nakshatra?: true
-  sortOrder?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -143,18 +119,6 @@ export type BookingMemberAggregateArgs<ExtArgs extends runtime.Types.Extensions.
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
-   * Select which fields to average
-  **/
-  _avg?: BookingMemberAvgAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
-   * Select which fields to sum
-  **/
-  _sum?: BookingMemberSumAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
    * Select which fields to find the minimum value
   **/
   _min?: BookingMemberMinAggregateInputType
@@ -185,8 +149,6 @@ export type BookingMemberGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   _count?: BookingMemberCountAggregateInputType | true
-  _avg?: BookingMemberAvgAggregateInputType
-  _sum?: BookingMemberSumAggregateInputType
   _min?: BookingMemberMinAggregateInputType
   _max?: BookingMemberMaxAggregateInputType
 }
@@ -194,14 +156,11 @@ export type BookingMemberGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 export type BookingMemberGroupByOutputType = {
   id: string
   bookingId: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder: number
   createdAt: Date
   updatedAt: Date
   _count: BookingMemberCountAggregateOutputType | null
-  _avg: BookingMemberAvgAggregateOutputType | null
-  _sum: BookingMemberSumAggregateOutputType | null
   _min: BookingMemberMinAggregateOutputType | null
   _max: BookingMemberMaxAggregateOutputType | null
 }
@@ -227,9 +186,8 @@ export type BookingMemberWhereInput = {
   NOT?: Prisma.BookingMemberWhereInput | Prisma.BookingMemberWhereInput[]
   id?: Prisma.UuidFilter<"BookingMember"> | string
   bookingId?: Prisma.UuidFilter<"BookingMember"> | string
-  memberName?: Prisma.StringFilter<"BookingMember"> | string
+  name?: Prisma.StringFilter<"BookingMember"> | string
   nakshatra?: Prisma.EnumNakshatraFilter<"BookingMember"> | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFilter<"BookingMember"> | number
   createdAt?: Prisma.DateTimeFilter<"BookingMember"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BookingMember"> | Date | string
   booking?: Prisma.XOR<Prisma.BookingScalarRelationFilter, Prisma.BookingWhereInput>
@@ -238,9 +196,8 @@ export type BookingMemberWhereInput = {
 export type BookingMemberOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   bookingId?: Prisma.SortOrder
-  memberName?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   nakshatra?: Prisma.SortOrder
-  sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   booking?: Prisma.BookingOrderByWithRelationInput
@@ -252,9 +209,8 @@ export type BookingMemberWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.BookingMemberWhereInput[]
   NOT?: Prisma.BookingMemberWhereInput | Prisma.BookingMemberWhereInput[]
   bookingId?: Prisma.UuidFilter<"BookingMember"> | string
-  memberName?: Prisma.StringFilter<"BookingMember"> | string
+  name?: Prisma.StringFilter<"BookingMember"> | string
   nakshatra?: Prisma.EnumNakshatraFilter<"BookingMember"> | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFilter<"BookingMember"> | number
   createdAt?: Prisma.DateTimeFilter<"BookingMember"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BookingMember"> | Date | string
   booking?: Prisma.XOR<Prisma.BookingScalarRelationFilter, Prisma.BookingWhereInput>
@@ -263,16 +219,13 @@ export type BookingMemberWhereUniqueInput = Prisma.AtLeast<{
 export type BookingMemberOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   bookingId?: Prisma.SortOrder
-  memberName?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   nakshatra?: Prisma.SortOrder
-  sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.BookingMemberCountOrderByAggregateInput
-  _avg?: Prisma.BookingMemberAvgOrderByAggregateInput
   _max?: Prisma.BookingMemberMaxOrderByAggregateInput
   _min?: Prisma.BookingMemberMinOrderByAggregateInput
-  _sum?: Prisma.BookingMemberSumOrderByAggregateInput
 }
 
 export type BookingMemberScalarWhereWithAggregatesInput = {
@@ -281,18 +234,16 @@ export type BookingMemberScalarWhereWithAggregatesInput = {
   NOT?: Prisma.BookingMemberScalarWhereWithAggregatesInput | Prisma.BookingMemberScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"BookingMember"> | string
   bookingId?: Prisma.UuidWithAggregatesFilter<"BookingMember"> | string
-  memberName?: Prisma.StringWithAggregatesFilter<"BookingMember"> | string
+  name?: Prisma.StringWithAggregatesFilter<"BookingMember"> | string
   nakshatra?: Prisma.EnumNakshatraWithAggregatesFilter<"BookingMember"> | $Enums.Nakshatra
-  sortOrder?: Prisma.IntWithAggregatesFilter<"BookingMember"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BookingMember"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"BookingMember"> | Date | string
 }
 
 export type BookingMemberCreateInput = {
   id?: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   booking: Prisma.BookingCreateNestedOneWithoutMembersInput
@@ -301,18 +252,16 @@ export type BookingMemberCreateInput = {
 export type BookingMemberUncheckedCreateInput = {
   id?: string
   bookingId: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type BookingMemberUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   booking?: Prisma.BookingUpdateOneRequiredWithoutMembersNestedInput
@@ -321,9 +270,8 @@ export type BookingMemberUpdateInput = {
 export type BookingMemberUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   bookingId?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -331,18 +279,16 @@ export type BookingMemberUncheckedUpdateInput = {
 export type BookingMemberCreateManyInput = {
   id?: string
   bookingId: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type BookingMemberUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -350,9 +296,8 @@ export type BookingMemberUpdateManyMutationInput = {
 export type BookingMemberUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   bookingId?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -370,23 +315,17 @@ export type BookingMemberOrderByRelationAggregateInput = {
 export type BookingMemberCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   bookingId?: Prisma.SortOrder
-  memberName?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   nakshatra?: Prisma.SortOrder
-  sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-}
-
-export type BookingMemberAvgOrderByAggregateInput = {
-  sortOrder?: Prisma.SortOrder
 }
 
 export type BookingMemberMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   bookingId?: Prisma.SortOrder
-  memberName?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   nakshatra?: Prisma.SortOrder
-  sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -394,15 +333,10 @@ export type BookingMemberMaxOrderByAggregateInput = {
 export type BookingMemberMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   bookingId?: Prisma.SortOrder
-  memberName?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   nakshatra?: Prisma.SortOrder
-  sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-}
-
-export type BookingMemberSumOrderByAggregateInput = {
-  sortOrder?: Prisma.SortOrder
 }
 
 export type BookingMemberCreateNestedManyWithoutBookingInput = {
@@ -451,28 +385,18 @@ export type EnumNakshatraFieldUpdateOperationsInput = {
   set?: $Enums.Nakshatra
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type BookingMemberCreateWithoutBookingInput = {
   id?: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type BookingMemberUncheckedCreateWithoutBookingInput = {
   id?: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -509,45 +433,40 @@ export type BookingMemberScalarWhereInput = {
   NOT?: Prisma.BookingMemberScalarWhereInput | Prisma.BookingMemberScalarWhereInput[]
   id?: Prisma.UuidFilter<"BookingMember"> | string
   bookingId?: Prisma.UuidFilter<"BookingMember"> | string
-  memberName?: Prisma.StringFilter<"BookingMember"> | string
+  name?: Prisma.StringFilter<"BookingMember"> | string
   nakshatra?: Prisma.EnumNakshatraFilter<"BookingMember"> | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFilter<"BookingMember"> | number
   createdAt?: Prisma.DateTimeFilter<"BookingMember"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BookingMember"> | Date | string
 }
 
 export type BookingMemberCreateManyBookingInput = {
   id?: string
-  memberName: string
+  name: string
   nakshatra: $Enums.Nakshatra
-  sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type BookingMemberUpdateWithoutBookingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type BookingMemberUncheckedUpdateWithoutBookingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type BookingMemberUncheckedUpdateManyWithoutBookingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  memberName?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   nakshatra?: Prisma.EnumNakshatraFieldUpdateOperationsInput | $Enums.Nakshatra
-  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -557,9 +476,8 @@ export type BookingMemberUncheckedUpdateManyWithoutBookingInput = {
 export type BookingMemberSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   bookingId?: boolean
-  memberName?: boolean
+  name?: boolean
   nakshatra?: boolean
-  sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
@@ -568,9 +486,8 @@ export type BookingMemberSelect<ExtArgs extends runtime.Types.Extensions.Interna
 export type BookingMemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   bookingId?: boolean
-  memberName?: boolean
+  name?: boolean
   nakshatra?: boolean
-  sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
@@ -579,9 +496,8 @@ export type BookingMemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types
 export type BookingMemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   bookingId?: boolean
-  memberName?: boolean
+  name?: boolean
   nakshatra?: boolean
-  sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
@@ -590,14 +506,13 @@ export type BookingMemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
 export type BookingMemberSelectScalar = {
   id?: boolean
   bookingId?: boolean
-  memberName?: boolean
+  name?: boolean
   nakshatra?: boolean
-  sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BookingMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "memberName" | "nakshatra" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["bookingMember"]>
+export type BookingMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "bookingId" | "name" | "nakshatra" | "createdAt" | "updatedAt", ExtArgs["result"]["bookingMember"]>
 export type BookingMemberInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   booking?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }
@@ -616,9 +531,8 @@ export type $BookingMemberPayload<ExtArgs extends runtime.Types.Extensions.Inter
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     bookingId: string
-    memberName: string
+    name: string
     nakshatra: $Enums.Nakshatra
-    sortOrder: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["bookingMember"]>
@@ -1047,9 +961,8 @@ export interface Prisma__BookingMemberClient<T, Null = never, ExtArgs extends ru
 export interface BookingMemberFieldRefs {
   readonly id: Prisma.FieldRef<"BookingMember", 'String'>
   readonly bookingId: Prisma.FieldRef<"BookingMember", 'String'>
-  readonly memberName: Prisma.FieldRef<"BookingMember", 'String'>
+  readonly name: Prisma.FieldRef<"BookingMember", 'String'>
   readonly nakshatra: Prisma.FieldRef<"BookingMember", 'Nakshatra'>
-  readonly sortOrder: Prisma.FieldRef<"BookingMember", 'Int'>
   readonly createdAt: Prisma.FieldRef<"BookingMember", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"BookingMember", 'DateTime'>
 }
