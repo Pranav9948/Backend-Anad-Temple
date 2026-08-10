@@ -3,20 +3,94 @@ import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'prisma/config';
 
-function resolveEnvFile(): string {
-  const nodeEnv = process.env.NODE_ENV ?? 'development';
-  if (nodeEnv === 'test') return '.env.test';
-  if (nodeEnv === 'production') return '.env.production';
+type AppEnv = 'development' | 'production' | 'test';
+
+/**
+ * Explicit Prisma CLI environment selection.
+ *
+ * Priority:
+ * 1) PRISMA_ENV   (recommended for migrate commands)
+ * 2) NODE_ENV
+ * 3) development  (safe local default)
+ *
+ * Examples (PowerShell):
+ *   $env:PRISMA_ENV="development"; npx prisma migrate status
+ *   $env:PRISMA_ENV="production";  npx prisma migrate deploy
+ */
+function resolveAppEnv(): AppEnv {
+  const raw = (process.env.PRISMA_ENV ?? process.env.NODE_ENV ?? 'development')
+    .trim()
+    .toLowerCase();
+
+  if (raw === 'production' || raw === 'test' || raw === 'development') {
+    return raw;
+  }
+
+  return 'development';
+}
+
+function envFilenameFor(appEnv: AppEnv): string {
+  if (appEnv === 'test') return '.env.test';
+  if (appEnv === 'production') return '.env.production';
   return '.env.development';
 }
 
-const envFile = resolveEnvFile();
-const envPath = path.resolve(process.cwd(), envFile);
+function redactDatabaseTarget(url: string | undefined): string {
+  if (!url) return '(not set)';
+  try {
+    const parsed = new URL(url);
+    const db = parsed.pathname.replace(/^\//, '') || '(none)';
+    return `${parsed.hostname}:${parsed.port || '5432'}/${db}`;
+  } catch {
+    return '(unparseable DATABASE_URL)';
+  }
+}
 
-if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath, override: false });
-} else {
-  dotenv.config();
+function loadEnvFile(appEnv: AppEnv): string | null {
+  const filename = envFilenameFor(appEnv);
+  const envPath = path.resolve(process.cwd(), filename);
+
+  // Runtime env (ECS/App Runner/CI) always wins over file values.
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: false });
+    return filename;
+  }
+
+  // Production containers typically have no .env.production file; ECS injects vars.
+  dotenv.config({ override: false });
+  return null;
+}
+
+const appEnv = resolveAppEnv();
+const loadedFrom = loadEnvFile(appEnv);
+
+// Prefer direct DB URL for migrations/DDL when available (Supabase pooler is for app runtime).
+const datasourceUrl =
+  process.env.DATABASE_DIRECT_URL?.trim() ||
+  process.env.DATABASE_URL?.trim() ||
+  undefined;
+
+const urlSource = process.env.DATABASE_DIRECT_URL?.trim()
+  ? 'DATABASE_DIRECT_URL'
+  : 'DATABASE_URL';
+
+// Visible guardrail so migrate commands cannot silently target the wrong DB.
+// eslint-disable-next-line no-console
+console.info(
+  `[prisma.config] appEnv=${appEnv}` +
+    ` file=${loadedFrom ?? '(none — using process env only)'}` +
+    ` urlSource=${urlSource}` +
+    ` target=${redactDatabaseTarget(datasourceUrl)}`,
+);
+
+if (appEnv === 'production') {
+  const target = redactDatabaseTarget(datasourceUrl).toLowerCase();
+  if (target.includes('neon.tech') || target.includes('neondb')) {
+    throw new Error(
+      '[prisma.config] Refusing production Prisma command: DATABASE_URL points at Neon. ' +
+        'Set PRISMA_ENV=production and ensure .env.production / ECS vars target Supabase.',
+    );
+  }
 }
 
 export default defineConfig({
@@ -26,6 +100,6 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
-    url: process.env['DATABASE_URL'],
+    url: datasourceUrl,
   },
 });
