@@ -127,6 +127,22 @@ export const errorMiddleware = (
 
   const err = error instanceof Error ? error : new Error(String(error));
 
+  if (err.message.startsWith('Not allowed by CORS')) {
+    logger.warn({
+      msg: 'CORS rejection',
+      requestId,
+      message: err.message,
+      origin: req.headers.origin ?? null,
+      userId,
+    });
+    res.status(403).json({
+      success: false,
+      message: 'Origin not allowed by CORS',
+      errorCode: ErrorCode.FORBIDDEN,
+    });
+    return;
+  }
+
   logger.error({
     msg: 'System error',
     requestId,

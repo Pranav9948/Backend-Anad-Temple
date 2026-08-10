@@ -41,20 +41,23 @@ app.get('/health', async (_req, res) => {
 
 app.disable('x-powered-by');
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-app.use(requestContext);
-app.use(requestLogger);
+app.use(corsMiddleware);
 
 app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    // Default helmet CORP is "same-origin", which blocks browsers from reading
+    // cross-origin API responses even when Access-Control-Allow-Origin is set.
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }),
 );
 
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
-app.use(corsMiddleware);
+app.use(requestContext);
+app.use(requestLogger);
 app.use(requestTimeout(30_000));
 app.use('/api', apiLimiter);
 app.use('/api/v1', routes);
