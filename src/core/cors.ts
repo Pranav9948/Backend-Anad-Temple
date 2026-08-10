@@ -46,11 +46,6 @@ const allowedOrigins = new Set(
   ].map(normalizeOrigin),
 );
 
-logger.info(
-  { allowedOrigins: [...allowedOrigins] },
-  'CORS allowed origins loaded',
-);
-
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     // Non-browser clients (curl/server-to-server) send no Origin.
@@ -63,8 +58,6 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
 
-    // Never throw here: Error becomes HTTP 500 via errorMiddleware and the
-    // browser reports a CORS failure because Access-Control-* headers are missing.
     logger.warn(
       { origin: normalized, allowedOrigins: [...allowedOrigins] },
       'CORS origin rejected',
