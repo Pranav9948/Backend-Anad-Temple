@@ -59,6 +59,7 @@ export const adminUpdateBookingSchema = z.object({
     .object({
       devoteeName: z.string().trim().min(1).max(255).optional(),
       mobile: mobileSchema.optional(),
+      address: z.string().trim().min(1).max(500).optional(),
       notes: z.string().max(2000).nullable().optional(),
     })
     .refine((body) => Object.keys(body).length > 0, {

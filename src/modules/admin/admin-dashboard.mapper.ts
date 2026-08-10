@@ -15,6 +15,7 @@ export function toAdminBookingListItem(booking: Booking) {
     bookingNumber: booking.bookingNumber,
     devoteeName: booking.devoteeName,
     mobileNumber: booking.mobileNumber,
+    address: booking.address,
     language: booking.language,
     paymentStatus: booking.paymentStatus,
     totalAmount: booking.totalAmount,

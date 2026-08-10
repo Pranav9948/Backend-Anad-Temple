@@ -52,6 +52,7 @@ export type CreateBookingMemberInput = {
 export type CreateBookingInput = {
   devoteeName: string;
   mobileNumber: string;
+  address?: string;
   language: Language;
   totalAmount: number;
   notes?: string;
@@ -74,6 +75,7 @@ export type BookingDetailsResponse = BookingDetail & {
 export type CreateInitialBookingInput = {
   devoteeName: string;
   mobileNumber: string;
+  address: string;
   language: Language;
 };
 
@@ -128,6 +130,7 @@ export class BookingService implements IBookingService {
       bookingNumber,
       devoteeName: input.devoteeName.trim(),
       mobileNumber: input.mobileNumber,
+      address: input.address.trim(),
       language: input.language,
       paymentStatus: PaymentStatus.PENDING,
       totalAmount: 0,
@@ -178,6 +181,7 @@ export class BookingService implements IBookingService {
       bookingNumber: details.bookingNumber,
       devoteeName: details.devoteeName,
       mobileNumber: details.mobileNumber,
+      address: details.address,
       language: details.language,
       memberCount: details.members.length,
       members: details.members.map((member) => ({
@@ -226,6 +230,7 @@ export class BookingService implements IBookingService {
         bookingNumber,
         devoteeName: input.devoteeName,
         mobileNumber: input.mobileNumber,
+        address: input.address?.trim() || null,
         language: input.language,
         paymentStatus: PaymentStatus.PENDING,
         totalAmount: input.totalAmount,
@@ -260,6 +265,7 @@ export class BookingService implements IBookingService {
       bookingNumber: bookingDetail.bookingNumber,
       devoteeName: bookingDetail.devoteeName,
       mobileNumber: bookingDetail.mobileNumber,
+      address: bookingDetail.address,
       language: bookingDetail.language,
       memberCount: bookingDetail.members.length,
       members: bookingDetail.members.map((member) => ({

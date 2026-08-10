@@ -847,6 +847,7 @@ export const BookingScalarFieldEnum = {
   bookingNumber: 'bookingNumber',
   devoteeName: 'devoteeName',
   mobileNumber: 'mobileNumber',
+  address: 'address',
   language: 'language',
   paymentStatus: 'paymentStatus',
   totalAmount: 'totalAmount',

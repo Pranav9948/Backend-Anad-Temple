@@ -35,6 +35,7 @@ import {
 export type AdminUpdateBookingInput = {
   devoteeName?: string;
   mobileNumber?: string;
+  address?: string;
   notes?: string | null;
 };
 
@@ -104,10 +105,16 @@ export class AdminBookingService implements IAdminBookingService {
       throw new BookingNotFoundError(bookingId);
     }
 
-    if (input.devoteeName !== undefined || input.mobileNumber !== undefined || input.notes !== undefined) {
+    if (
+      input.devoteeName !== undefined ||
+      input.mobileNumber !== undefined ||
+      input.address !== undefined ||
+      input.notes !== undefined
+    ) {
       await this.bookings.update(bookingId, {
         ...(input.devoteeName !== undefined ? { devoteeName: input.devoteeName } : {}),
         ...(input.mobileNumber !== undefined ? { mobileNumber: input.mobileNumber } : {}),
+        ...(input.address !== undefined ? { address: input.address } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       });
     }

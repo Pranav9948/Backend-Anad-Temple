@@ -14,6 +14,7 @@ export type BookingCreatedNotificationPayload = {
   bookingNumber: string;
   devoteeName: string;
   mobileNumber: string;
+  address?: string | null;
   language: Language;
   memberCount: number;
   members: BookingCreatedMemberPayload[];

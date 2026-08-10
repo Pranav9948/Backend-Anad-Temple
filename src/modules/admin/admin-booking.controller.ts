@@ -50,9 +50,10 @@ export const getBookingById: RequestHandler = asyncHandler(
 export const updateBooking: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const bookingId = getRouteParam(req.params.bookingId);
-    const { devoteeName, mobile, notes } = req.body as {
+    const { devoteeName, mobile, address, notes } = req.body as {
       devoteeName?: string;
       mobile?: string;
+      address?: string;
       notes?: string | null;
     };
 
@@ -62,6 +63,7 @@ export const updateBooking: RequestHandler = asyncHandler(
       {
         ...(devoteeName !== undefined ? { devoteeName } : {}),
         ...(mobile !== undefined ? { mobileNumber: mobile } : {}),
+        ...(address !== undefined ? { address } : {}),
         ...(notes !== undefined ? { notes } : {}),
       },
     );
