@@ -16,6 +16,7 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV PORT=8080
 RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod

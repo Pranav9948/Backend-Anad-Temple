@@ -28,9 +28,17 @@ function expandFrontendOrigins(frontendUrl: string): string[] {
   return [...origins];
 }
 
+// Single-tenant production site. Always allow both www and apex so a stale
+// FRONTEND_URL (e.g. an old Vercel preview host) cannot break browser CORS.
+const KNOWN_PRODUCTION_ORIGINS = [
+  'https://www.anadchamundidevi.org',
+  'https://anadchamundidevi.org',
+] as const;
+
 const allowedOrigins = new Set(
   [
     ...expandFrontendOrigins(env.FRONTEND_URL),
+    ...KNOWN_PRODUCTION_ORIGINS,
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
