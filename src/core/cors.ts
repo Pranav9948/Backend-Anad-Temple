@@ -1,32 +1,72 @@
+import type { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import { env } from './env.js';
+import { logger } from './logger.js';
+
+function normalizeOrigin(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\/+$/, '');
+}
+
+function expandFrontendOrigins(frontendUrl: string): string[] {
+  const primary = normalizeOrigin(frontendUrl);
+  const origins = new Set<string>([primary]);
+
+  try {
+    const url = new URL(primary);
+    if (url.hostname.startsWith('www.')) {
+      origins.add(`${url.protocol}//${url.hostname.slice(4)}`);
+    } else {
+      origins.add(`${url.protocol}//www.${url.hostname}`);
+    }
+  } catch {
+    // FRONTEND_URL is Zod-validated as a URL; keep primary only if parsing fails.
+  }
+
+  return [...origins];
+}
 
 const allowedOrigins = new Set(
   [
-    env.FRONTEND_URL,
+    ...expandFrontendOrigins(env.FRONTEND_URL),
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-  ].filter(Boolean),
+  ].map(normalizeOrigin),
 );
 
-export const corsMiddleware = cors({
-  origin: (origin, callback) => {
-    console.log('Incoming Origin:', origin);
-    console.log('Allowed:', allowedOrigins);
+logger.info(
+  { allowedOrigins: [...allowedOrigins] },
+  'CORS allowed origins loaded',
+);
 
-    // Allow non-browser clients (curl, server-to-server) and same-origin
-    if (!origin || allowedOrigins.has(origin)) {
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Non-browser clients (curl/server-to-server) send no Origin.
+    if (!origin) {
       return callback(null, true);
     }
 
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
+    const normalized = normalizeOrigin(origin);
+    if (allowedOrigins.has(normalized)) {
+      return callback(null, true);
+    }
+
+    // Never throw here: Error becomes HTTP 500 via errorMiddleware and the
+    // browser reports a CORS failure because Access-Control-* headers are missing.
+    logger.warn(
+      { origin: normalized, allowedOrigins: [...allowedOrigins] },
+      'CORS origin rejected',
+    );
+    return callback(null, false);
   },
 
   credentials: true,
 
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
   allowedHeaders: [
     'Content-Type',
@@ -35,4 +75,28 @@ export const corsMiddleware = cors({
     'Pragma',
     'X-Requested-With',
   ],
-});
+
+  optionsSuccessStatus: 204,
+};
+
+const corsHandler = cors(corsOptions);
+
+export function corsMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  corsHandler(req, res, (err?: unknown) => {
+    if (err) {
+      next(err);
+      return;
+    }
+
+    if (req.method === 'OPTIONS' && !res.headersSent) {
+      res.sendStatus(204);
+      return;
+    }
+
+    next();
+  });
+}
