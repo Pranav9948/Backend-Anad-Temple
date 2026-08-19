@@ -14,7 +14,7 @@ function writeRequestField(
   if (value === undefined) return;
 
   try {
-    (req as Record<string, unknown>)[key] = value;
+    (req as unknown as Record<string, unknown>)[key] = value;
   } catch {
     Object.defineProperty(req, key, {
       value,
