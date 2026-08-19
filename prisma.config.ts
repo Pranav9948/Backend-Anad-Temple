@@ -46,6 +46,36 @@ function redactDatabaseTarget(url: string | undefined): string {
   }
 }
 
+/**
+ * Prisma migrate needs a reachable, non-pooled connection.
+ * Neon pooler hosts and channel_binding often surface as P1001 on first connect.
+ */
+function preparePrismaDatasourceUrl(
+  url: string | undefined,
+): string | undefined {
+  if (!url) return undefined;
+
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.hostname.includes('-pooler.')) {
+      parsed.hostname = parsed.hostname.replace('-pooler.', '.');
+    }
+
+    parsed.searchParams.delete('channel_binding');
+    if (!parsed.searchParams.has('sslmode')) {
+      parsed.searchParams.set('sslmode', 'require');
+    }
+    if (!parsed.searchParams.has('connect_timeout')) {
+      parsed.searchParams.set('connect_timeout', '30');
+    }
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 function loadEnvFile(appEnv: AppEnv): string | null {
   const filename = envFilenameFor(appEnv);
   const envPath = path.resolve(process.cwd(), filename);
@@ -64,11 +94,12 @@ function loadEnvFile(appEnv: AppEnv): string | null {
 const appEnv = resolveAppEnv();
 const loadedFrom = loadEnvFile(appEnv);
 
-// Prefer direct DB URL for migrations/DDL when available (Supabase pooler is for app runtime).
-const datasourceUrl =
+// Prefer direct DB URL for migrations/DDL when available (pooler is for app runtime).
+const datasourceUrl = preparePrismaDatasourceUrl(
   process.env.DATABASE_DIRECT_URL?.trim() ||
-  process.env.DATABASE_URL?.trim() ||
-  undefined;
+    process.env.DATABASE_URL?.trim() ||
+    undefined,
+);
 
 const urlSource = process.env.DATABASE_DIRECT_URL?.trim()
   ? 'DATABASE_DIRECT_URL'
