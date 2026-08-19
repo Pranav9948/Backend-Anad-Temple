@@ -47,8 +47,11 @@ function redactDatabaseTarget(url: string | undefined): string {
 }
 
 /**
- * Prisma migrate needs a reachable, non-pooled connection.
- * Neon pooler hosts and channel_binding often surface as P1001 on first connect.
+ * Prisma's Windows migration engine often omits TLS SNI.
+ * Neon then cannot route the connection and reports P1001, even though
+ * the Neon SQL Editor (browser) works.
+ *
+ * See https://neon.com/docs/connect/connection-errors#the-endpoint-id-is-not-specified
  */
 function preparePrismaDatasourceUrl(
   url: string | undefined,
@@ -57,10 +60,7 @@ function preparePrismaDatasourceUrl(
 
   try {
     const parsed = new URL(url);
-
-    if (parsed.hostname.includes('-pooler.')) {
-      parsed.hostname = parsed.hostname.replace('-pooler.', '.');
-    }
+    const isNeon = parsed.hostname.includes('neon.tech');
 
     parsed.searchParams.delete('channel_binding');
     if (!parsed.searchParams.has('sslmode')) {
@@ -68,6 +68,17 @@ function preparePrismaDatasourceUrl(
     }
     if (!parsed.searchParams.has('connect_timeout')) {
       parsed.searchParams.set('connect_timeout', '30');
+    }
+
+    if (isNeon) {
+      const hostLabel = parsed.hostname.split('.')[0] ?? '';
+      const endpointId = hostLabel.replace(/-pooler$/, '');
+
+      if (endpointId.startsWith('ep-')) {
+        if (!parsed.searchParams.get('options')?.includes('endpoint=')) {
+          parsed.searchParams.set('options', `endpoint=${endpointId}`);
+        }
+      }
     }
 
     return parsed.toString();
@@ -82,7 +93,7 @@ function loadEnvFile(appEnv: AppEnv): string | null {
 
   // Runtime env (ECS/App Runner/CI) always wins over file values.
   if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: false });
+    dotenv.config({ path: envPath, override: true });
     return filename;
   }
 
