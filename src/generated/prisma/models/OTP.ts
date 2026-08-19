@@ -441,10 +441,6 @@ export type EnumOTPStatusFieldUpdateOperationsInput = {
   set?: $Enums.OTPStatus
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 
 
 export type OTPSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{

@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import routes from './routes/v1/index.js';
+import adminSessionRoutes from './routes/admin-session.routes.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 import { NotFoundException } from './exceptions/exceptions.js';
 import { ErrorCode } from './exceptions/root.js';
@@ -60,6 +61,7 @@ app.use(requestContext);
 app.use(requestLogger);
 app.use(requestTimeout(30_000));
 app.use('/api', apiLimiter);
+app.use('/api/admin', adminSessionRoutes);
 app.use('/api/v1', routes);
 
 app.all('{*path}', (req, _res, next) => {

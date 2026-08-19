@@ -77,8 +77,11 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const AdminScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  email: 'email',
+  passwordHash: 'passwordHash',
   mobile: 'mobile',
   role: 'role',
+  isAdmin: 'isAdmin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -91,6 +94,7 @@ export const BookingScalarFieldEnum = {
   bookingNumber: 'bookingNumber',
   devoteeName: 'devoteeName',
   mobileNumber: 'mobileNumber',
+  address: 'address',
   language: 'language',
   paymentStatus: 'paymentStatus',
   totalAmount: 'totalAmount',

@@ -22,6 +22,14 @@ const envSchema = z.object({
     .string()
     .min(10, 'JWT_REFRESH_SECRET must be at least 10 characters long'),
 
+  /** Dedicated secret for admin session JWTs (`admin_token` cookie). */
+  ADMIN_JWT_SECRET: z
+    .string()
+    .min(16, 'ADMIN_JWT_SECRET must be at least 16 characters long'),
+
+  /** Admin JWT / cookie lifetime (e.g. 8h, 1d, 7d). */
+  ADMIN_JWT_EXPIRES_IN: z.string().min(1).default('8h'),
+
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
 
   /** Gmail SMTP (or any SMTP) for temple admin email alerts */

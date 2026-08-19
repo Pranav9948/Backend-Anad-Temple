@@ -1,36 +1,17 @@
 import { z } from 'zod';
-import { isValidIndianMobile, normalizeIndianMobile } from '@/utils/mobile.util.js';
 
-export const adminMobileSchema = z
-  .string()
-  .trim()
-  .min(1, 'Mobile number is required')
-  .refine(isValidIndianMobile, 'Mobile must be a valid Indian number (+91)');
-
-export const normalizedAdminMobileSchema = adminMobileSchema.transform(
-  normalizeIndianMobile,
-);
-
-export const sendOtpSchema = z.object({
+export const adminLoginSchema = z.object({
   body: z.object({
-    mobile: adminMobileSchema,
-  }),
-});
-
-export const verifyOtpSchema = z.object({
-  body: z.object({
-    mobile: adminMobileSchema,
-    otp: z
+    email: z
       .string()
       .trim()
-      .regex(/^\d{6}$/, 'OTP must be a 6-digit code'),
+      .toLowerCase()
+      .email('A valid admin email is required'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be at most 128 characters'),
   }),
 });
 
-export const resendOtpSchema = sendOtpSchema;
-
-export const refreshTokenSchema = z.object({
-  body: z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
-  }),
-});
+export type AdminLoginBody = z.infer<typeof adminLoginSchema>['body'];

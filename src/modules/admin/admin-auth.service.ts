@@ -1,142 +1,75 @@
 import type { Admin } from '@/generated/prisma/client.js';
-import { config } from '@/core/config.js';
 import { logger } from '@/core/logger.js';
-import { OTP_CONFIG } from '@/domain/otp.constants.js';
 import { Security } from '@/core/security.js';
+import { UnauthorizedException } from '@/exceptions/exceptions.js';
 import {
-  type IAdminService,
-  adminService,
-} from '@/modules/admin/admin.service.js';
+  type IAdminRepository,
+  adminRepository,
+} from '@/modules/admin/admin.repository.js';
 import { toPublicAdmin, type PublicAdmin } from '@/modules/admin/admin.mapper.js';
-import {
-  type INotificationService,
-  notificationService,
-} from '@/modules/notification/notification.service.js';
-import {
-  type IOtpService,
-  otpService,
-} from '@/modules/otp/otp.service.js';
-import { normalizeIndianMobile } from '@/utils/mobile.util.js';
 
-export type AuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: 'Bearer';
-  expiresIn: string;
-};
-
-export type SendOtpResult = {
-  mobile: string;
-  expiresAt: Date;
-  message: string;
-  devOtp?: string;
-};
-
-export type VerifyOtpResult = AuthTokens & {
+export type AdminLoginResult = {
   admin: PublicAdmin;
+  token: string;
 };
 
 export interface IAdminAuthService {
-  sendOtp(mobile: string): Promise<SendOtpResult>;
-  resendOtp(mobile: string): Promise<SendOtpResult>;
-  verifyOtp(mobile: string, otp: string): Promise<VerifyOtpResult>;
-  refreshAccessToken(refreshToken: string): Promise<AuthTokens>;
+  login(email: string, password: string): Promise<AdminLoginResult>;
   getProfile(adminId: string): Promise<PublicAdmin>;
 }
 
 export class AdminAuthService implements IAdminAuthService {
-  constructor(
-    private readonly otps: IOtpService = otpService,
-    private readonly admins: IAdminService = adminService,
-    private readonly notifications: INotificationService = notificationService,
-  ) {}
+  constructor(private readonly admins: IAdminRepository = adminRepository) {}
 
-  async sendOtp(mobile: string): Promise<SendOtpResult> {
-    const normalizedMobile = normalizeIndianMobile(mobile);
+  async login(email: string, password: string): Promise<AdminLoginResult> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const admin = await this.admins.findByEmail(normalizedEmail);
 
-    const { plainOtp, expiresAt } = await this.otps.generateOTP(normalizedMobile);
+    // Constant-ish failure path: always run a bcrypt compare when possible.
+    const passwordHash = admin?.passwordHash ?? '!';
+    const passwordMatches = await Security.comparePassword(
+      password,
+      passwordHash,
+    );
 
-    void this.notifications.notifyAdminOtp(plainOtp, OTP_CONFIG.EXPIRY_MINUTES);
+    if (
+      !admin ||
+      !passwordMatches ||
+      admin.role !== 'ADMIN' ||
+      !admin.isAdmin ||
+      admin.passwordHash === '!'
+    ) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
 
-    logger.info({ mobile: normalizedMobile }, 'Admin OTP generated');
+    const token = this.issueAdminToken(admin);
 
-    return this.buildSendOtpResult(normalizedMobile, expiresAt, plainOtp);
-  }
-
-  async resendOtp(mobile: string): Promise<SendOtpResult> {
-    const normalizedMobile = normalizeIndianMobile(mobile);
-
-    const { plainOtp, expiresAt } = await this.otps.resendOTP(normalizedMobile);
-
-    void this.notifications.notifyAdminOtp(plainOtp, OTP_CONFIG.EXPIRY_MINUTES);
-
-    logger.info({ mobile: normalizedMobile }, 'Admin OTP resent');
-
-    return this.buildSendOtpResult(normalizedMobile, expiresAt, plainOtp);
-  }
-
-  async verifyOtp(mobile: string, otp: string): Promise<VerifyOtpResult> {
-    const normalizedMobile = normalizeIndianMobile(mobile);
-
-    await this.otps.verifyOTP(normalizedMobile, otp);
-
-    const admin = await this.admins.verifyAdminExists(normalizedMobile);
-    const tokens = this.issueTokens(admin);
-
-    logger.info({ adminId: admin.id, mobile: normalizedMobile }, 'Admin login successful');
+    logger.info(
+      { adminId: admin.id, email: admin.email },
+      'Admin login successful',
+    );
 
     return {
-      ...tokens,
       admin: toPublicAdmin(admin),
+      token,
     };
-  }
-
-  async refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
-    const payload = Security.verifyRefreshToken(refreshToken);
-    const admin = await this.admins.getAdmin(payload.userId);
-
-    return this.issueTokens(admin);
   }
 
   async getProfile(adminId: string): Promise<PublicAdmin> {
-    const admin = await this.admins.getAdmin(adminId);
+    const admin = await this.admins.findById(adminId);
+    if (!admin || admin.role !== 'ADMIN' || !admin.isAdmin) {
+      throw new UnauthorizedException('Admin not found or inactive');
+    }
     return toPublicAdmin(admin);
   }
 
-  private issueTokens(admin: Admin): AuthTokens {
-    const accessToken = Security.generateAccessToken({
+  private issueAdminToken(admin: Admin): string {
+    return Security.generateAdminToken({
       userId: admin.id,
       role: admin.role,
+      isAdmin: admin.isAdmin,
+      email: admin.email,
     });
-
-    const refreshToken = Security.generateRefreshToken({
-      userId: admin.id,
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-      tokenType: 'Bearer',
-      expiresIn: '15m',
-    };
-  }
-
-  private buildSendOtpResult(
-    mobile: string,
-    expiresAt: Date,
-    plainOtp: string,
-  ): SendOtpResult {
-    const result: SendOtpResult = {
-      mobile,
-      expiresAt,
-      message: 'OTP sent to temple admin email',
-    };
-
-    if (config.NODE_ENV === 'development') {
-      result.devOtp = plainOtp;
-    }
-
-    return result;
   }
 }
 

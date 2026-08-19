@@ -1,23 +1,38 @@
-import type { Booking, Payment } from '@/generated/prisma/client.js';
-import type { BookingWithRelations } from '@/modules/booking/booking.repository.js';
+import type { Payment } from '@/generated/prisma/client.js';
+import type {
+  AdminBookingListRecord,
+  BookingWithMembers,
+  BookingWithRelations,
+} from '@/modules/booking/booking.repository.js';
 import {
   isBookingCancelled,
   isBookingCheckedOut,
 } from '@/domain/errors.js';
 import {
+  calculateHomamTotalPaise,
+  FAMILY_BOOKING_MIN_MEMBERS,
+} from '@/domain/booking.constants.js';
+import {
   toPublicMember,
   toPublicBooking,
 } from '@/modules/booking/booking.mapper.js';
 
-export function toAdminBookingListItem(booking: Booking) {
+export function toAdminBookingListItem(booking: AdminBookingListRecord) {
+  const memberCount = booking._count.members;
+  const bookingKind =
+    memberCount >= FAMILY_BOOKING_MIN_MEMBERS ? 'family' : 'individual';
+
   return {
     id: booking.id,
     bookingNumber: booking.bookingNumber,
     devoteeName: booking.devoteeName,
     mobileNumber: booking.mobileNumber,
+    address: booking.address,
     language: booking.language,
     paymentStatus: booking.paymentStatus,
-    totalAmount: booking.totalAmount,
+    totalAmount: calculateHomamTotalPaise(memberCount),
+    memberCount,
+    bookingKind,
     isCancelled: isBookingCancelled(booking.notes),
     isCheckedOut: isBookingCheckedOut(booking.notes),
     createdAt: booking.createdAt,
@@ -44,10 +59,84 @@ export function toAdminPaymentDetails(payment: Payment | null) {
   };
 }
 
+function toAdminDuplicateBookingSummary(booking: BookingWithMembers) {
+  const memberCount = booking.members.length;
+  const bookingKind =
+    memberCount >= FAMILY_BOOKING_MIN_MEMBERS ? 'family' : 'individual';
+
+  return {
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    devoteeName: booking.devoteeName,
+    paymentStatus: booking.paymentStatus,
+    totalAmount: calculateHomamTotalPaise(memberCount),
+    memberCount,
+    bookingKind,
+    createdAt: booking.createdAt,
+  };
+}
+
+export function toAdminDuplicateListGroup(
+  mobileNumber: string,
+  bookings: BookingWithMembers[],
+) {
+  return {
+    mobileNumber,
+    count: bookings.length,
+    devoteeNames: [...new Set(bookings.map((booking) => booking.devoteeName))],
+    bookings: bookings.map(toAdminDuplicateBookingSummary),
+  };
+}
+
+export function toAdminDuplicateCompareBooking(booking: BookingWithMembers) {
+  return {
+    ...toAdminDuplicateBookingSummary(booking),
+    mobileNumber: booking.mobileNumber,
+    address: booking.address,
+    language: booking.language,
+    notes: booking.notes,
+    isCancelled: isBookingCancelled(booking.notes),
+    isCheckedOut: isBookingCheckedOut(booking.notes),
+    members: booking.members.map(toPublicMember),
+  };
+}
+
+export function toAdminDuplicateCompareGroup(
+  mobileNumber: string,
+  bookings: BookingWithMembers[],
+) {
+  return {
+    mobileNumber,
+    count: bookings.length,
+    devoteeNames: [...new Set(bookings.map((booking) => booking.devoteeName))],
+    bookings: bookings.map(toAdminDuplicateCompareBooking),
+  };
+}
+
+export function toAdminBookingExportItem(booking: BookingWithMembers) {
+  return {
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    devoteeName: booking.devoteeName,
+    mobileNumber: booking.mobileNumber,
+    paymentStatus: booking.paymentStatus,
+    totalAmount: calculateHomamTotalPaise(booking.members.length),
+    members: booking.members.map((member) => ({
+      personName: member.name,
+      nakshatra: member.nakshatra,
+    })),
+  };
+}
+
 export function toAdminBookingDetails(record: BookingWithRelations) {
+  const priced = {
+    ...record,
+    totalAmount: calculateHomamTotalPaise(record.members.length),
+  };
+
   return {
     booking: {
-      ...toPublicBooking(record),
+      ...toPublicBooking(priced),
       bookingStatus: {
         paymentStatus: record.paymentStatus,
         isCancelled: isBookingCancelled(record.notes),

@@ -4,6 +4,8 @@ declare global {
       user?: {
         userId: string;
         role: string;
+        isAdmin?: boolean;
+        email?: string;
       };
       requestId: string;
       startTime: number;
