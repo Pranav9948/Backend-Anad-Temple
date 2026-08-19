@@ -43,7 +43,7 @@ export { Prisma }
 
 /**
  * Model Admin
- * Temple administrator — authenticates via mobile OTP (independent model).
+ * Temple administrator — authenticates via email + password (JWT cookie).
  */
 export type Admin = Prisma.AdminModel
 /**

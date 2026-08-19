@@ -6,12 +6,18 @@ import type {
   Prisma,
 } from '@/generated/prisma/client.js';
 import { PaymentStatus } from '@/generated/prisma/client.js';
+import { FAMILY_BOOKING_MIN_MEMBERS } from '@/domain/booking.constants.js';
+import {
+  CANCELLED_BOOKING_PREFIX,
+  CHECKED_OUT_BOOKING_PREFIX,
+} from '@/domain/errors.js';
 import { BaseRepository } from '@/repositories/base.repository.js';
 import {
   isPrismaNotFoundError,
   RepositoryNotFoundError,
 } from '@/repositories/errors.js';
 import { runInTransaction } from '@/repositories/transaction.js';
+import { logger } from '@/core/logger.js';
 
 export type BookingCreateData = Prisma.BookingCreateInput;
 export type BookingUpdateData = Prisma.BookingUpdateInput;
@@ -32,16 +38,25 @@ export type AdminBookingSortField =
   | 'bookingNumber'
   | 'amount';
 
+export type AdminBookingKind = 'individual' | 'family';
+export type AdminRecordStatus = 'active' | 'checkedOut' | 'cancelled';
+
 export type AdminBookingFilter = {
   search?: string;
   paymentStatus?: PaymentStatus;
   language?: Language;
   dateFrom?: Date;
   dateTo?: Date;
+  bookingKind?: AdminBookingKind;
+  recordStatus?: AdminRecordStatus;
   skip?: number;
   take?: number;
   sortBy?: AdminBookingSortField;
   sortOrder?: 'asc' | 'desc';
+};
+
+export type AdminBookingListRecord = Booking & {
+  _count: { members: number };
 };
 
 export type BookingWithRelations = Booking & {
@@ -67,6 +82,12 @@ export type DashboardStats = RevenueAggregate & {
 
 export type BookingWithMembers = Booking & { members: BookingMember[] };
 
+export type DuplicateMobileGroupRecord = {
+  mobileNumber: string;
+  count: number;
+  bookings: BookingWithMembers[];
+};
+
 export interface IBookingRepository {
   create(data: BookingCreateData): Promise<Booking>;
   createWithMembers(
@@ -77,7 +98,10 @@ export interface IBookingRepository {
   findByBookingNumber(bookingNumber: string): Promise<Booking | null>;
   findByMobile(mobileNumber: string): Promise<Booking[]>;
   update(id: string, data: BookingUpdateData): Promise<Booking>;
-  updatePaymentStatus(id: string, paymentStatus: PaymentStatus): Promise<Booking>;
+  updatePaymentStatus(
+    id: string,
+    paymentStatus: PaymentStatus,
+  ): Promise<Booking>;
   delete(id: string): Promise<Booking>;
   exists(id: string): Promise<boolean>;
   getAll(params?: BookingListParams): Promise<Booking[]>;
@@ -86,8 +110,15 @@ export interface IBookingRepository {
   count(): Promise<number>;
   countPaid(): Promise<number>;
   countPending(): Promise<number>;
-  findManyForAdmin(filter: AdminBookingFilter): Promise<Booking[]>;
+  findManyForAdmin(
+    filter: AdminBookingFilter,
+  ): Promise<AdminBookingListRecord[]>;
   countForAdmin(filter: AdminBookingFilter): Promise<number>;
+  findManyForAdminExport(
+    filter: AdminBookingFilter,
+  ): Promise<BookingWithMembers[]>;
+  findDuplicateMobileGroups(): Promise<DuplicateMobileGroupRecord[]>;
+  findByMobileWithMembers(mobileNumber: string): Promise<BookingWithMembers[]>;
   findByIdWithRelations(id: string): Promise<BookingWithRelations | null>;
   aggregateRevenue(where?: Prisma.BookingWhereInput): Promise<RevenueAggregate>;
   getDashboardStats(todayStart: Date, todayEnd: Date): Promise<DashboardStats>;
@@ -220,19 +251,140 @@ export class BookingRepository
     });
   }
 
-  findManyForAdmin(filter: AdminBookingFilter): Promise<Booking[]> {
+  async findManyForAdmin(
+    filter: AdminBookingFilter,
+  ): Promise<AdminBookingListRecord[]> {
+    const where = await this.buildAdminWhere(filter);
+
+    logger.info(`findManyForAdmin where ${JSON.stringify(where, null, 2)}`);
+
     return this.db.booking.findMany({
-      where: buildAdminBookingWhere(filter),
+      where,
       skip: filter.skip,
       take: filter.take,
       orderBy: buildAdminBookingOrderBy(filter.sortBy, filter.sortOrder),
+      include: {
+        _count: { select: { members: true } },
+      },
     });
   }
 
-  countForAdmin(filter: AdminBookingFilter): Promise<number> {
-    return this.db.booking.count({
-      where: buildAdminBookingWhere(filter),
+  async countForAdmin(filter: AdminBookingFilter): Promise<number> {
+    const where = await this.buildAdminWhere(filter);
+    logger.info(`countForAdmin where ${JSON.stringify(where, null, 2)}`);
+    return this.db.booking.count({ where });
+  }
+
+  async findManyForAdminExport(
+    filter: AdminBookingFilter,
+  ): Promise<BookingWithMembers[]> {
+    const where = await this.buildAdminWhere(filter);
+
+    return this.db.booking.findMany({
+      where,
+      orderBy: buildAdminBookingOrderBy(filter.sortBy, filter.sortOrder),
+      include: {
+        members: { orderBy: { createdAt: 'asc' } },
+      },
     });
+  }
+
+  async findDuplicateMobileGroups(): Promise<DuplicateMobileGroupRecord[]> {
+    const grouped = await this.db.booking.groupBy({
+      by: ['mobileNumber'],
+      _count: { _all: true },
+      having: {
+        mobileNumber: { _count: { gte: 2 } },
+      },
+      orderBy: {
+        _count: { mobileNumber: 'desc' },
+      },
+    });
+
+    if (grouped.length === 0) {
+      return [];
+    }
+
+    const mobiles = grouped.map((row) => row.mobileNumber);
+    const bookings = await this.db.booking.findMany({
+      where: { mobileNumber: { in: mobiles } },
+      include: { members: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const byMobile = new Map<string, BookingWithMembers[]>();
+    for (const booking of bookings) {
+      const list = byMobile.get(booking.mobileNumber) ?? [];
+      list.push(booking);
+      byMobile.set(booking.mobileNumber, list);
+    }
+
+    return grouped.map((row) => ({
+      mobileNumber: row.mobileNumber,
+      count: row._count._all,
+      bookings: byMobile.get(row.mobileNumber) ?? [],
+    }));
+  }
+
+  findByMobileWithMembers(mobileNumber: string): Promise<BookingWithMembers[]> {
+    return this.db.booking.findMany({
+      where: { mobileNumber },
+      include: { members: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private async buildAdminWhere(
+    filter: AdminBookingFilter,
+  ): Promise<Prisma.BookingWhereInput> {
+    const conditions = buildAdminBookingWhereConditions(filter);
+
+    if (filter.bookingKind) {
+      const ids = await this.findBookingIdsByKind(filter.bookingKind);
+      conditions.push(
+        ids.length > 0
+          ? { id: { in: ids } }
+          : { id: { equals: '00000000-0000-0000-0000-000000000000' } },
+      );
+    }
+
+    if (conditions.length === 0) {
+      return {};
+    }
+
+    return { AND: conditions };
+  }
+
+  private async findBookingIdsByKind(
+    kind: AdminBookingKind,
+  ): Promise<string[]> {
+    const min = FAMILY_BOOKING_MIN_MEMBERS;
+
+    if (kind === 'family') {
+      const grouped = await this.db.bookingMember.groupBy({
+        by: ['bookingId'],
+        having: {
+          bookingId: { _count: { gte: min } },
+        },
+      });
+      return grouped.map((row) => row.bookingId);
+    }
+
+    const grouped = await this.db.bookingMember.groupBy({
+      by: ['bookingId'],
+      having: {
+        bookingId: { _count: { lt: min } },
+      },
+    });
+    const empty = await this.db.booking.findMany({
+      where: { members: { none: {} } },
+      select: { id: true },
+    });
+
+    return [
+      ...grouped.map((row) => row.bookingId),
+      ...empty.map((row) => row.id),
+    ];
   }
 
   findByIdWithRelations(id: string): Promise<BookingWithRelations | null> {
@@ -297,9 +449,9 @@ export class BookingRepository
   }
 }
 
-function buildAdminBookingWhere(
+function buildAdminBookingWhereConditions(
   filter: AdminBookingFilter,
-): Prisma.BookingWhereInput {
+): Prisma.BookingWhereInput[] {
   const conditions: Prisma.BookingWhereInput[] = [];
 
   if (filter.paymentStatus) {
@@ -326,15 +478,22 @@ function buildAdminBookingWhere(
         { bookingNumber: { contains: term, mode: 'insensitive' } },
         { devoteeName: { contains: term, mode: 'insensitive' } },
         { mobileNumber: { contains: term } },
+        { address: { contains: term, mode: 'insensitive' } },
       ],
     });
   }
 
-  if (conditions.length === 0) {
-    return {};
+  if (filter.recordStatus === 'cancelled') {
+    conditions.push({ notes: { startsWith: CANCELLED_BOOKING_PREFIX } });
+  } else if (filter.recordStatus === 'checkedOut') {
+    conditions.push({ notes: { contains: CHECKED_OUT_BOOKING_PREFIX } });
+  } else if (filter.recordStatus === 'active') {
+    conditions.push({
+      NOT: { notes: { startsWith: CANCELLED_BOOKING_PREFIX } },
+    });
   }
 
-  return { AND: conditions };
+  return conditions;
 }
 
 function buildAdminBookingOrderBy(
