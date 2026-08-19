@@ -46,9 +46,58 @@ function delay(ms: number): Promise<void> {
 function getDatabaseTargetLabel(): string {
   try {
     const url = new URL(config.DATABASE_URL);
-    return `${url.hostname}:${url.port || '5432'}/${url.pathname.replace(/^\//, '')}`;
+    const dbName = url.pathname.replace(/^\//, '').split('?')[0] || '(unknown-db)';
+    return `${url.hostname}:${url.port || '5432'}/${dbName}`;
   } catch {
     return config.DATABASE_URL.split('/').pop() ?? 'database';
+  }
+}
+
+/** Safe summary for logs — never includes password or full connection string. */
+export function getDatabaseConnectionSummary(): {
+  target: string;
+  host: string;
+  database: string;
+  inferredKind: 'development' | 'production' | 'unknown';
+} {
+  try {
+    const url = new URL(config.DATABASE_URL);
+    const database =
+      url.pathname.replace(/^\//, '').split('?')[0] || '(unknown-db)';
+    const host = url.hostname;
+    const lowerHost = host.toLowerCase();
+    const lowerDb = database.toLowerCase();
+
+    let inferredKind: 'development' | 'production' | 'unknown' = 'unknown';
+    if (
+      lowerHost === 'localhost' ||
+      lowerHost === '127.0.0.1' ||
+      lowerDb.includes('dev') ||
+      lowerDb.includes('test')
+    ) {
+      inferredKind = 'development';
+    } else if (
+      lowerDb.includes('prod') ||
+      lowerHost.includes('supabase') ||
+      lowerHost.includes('neon.tech') ||
+      lowerHost.includes('amazonaws.com')
+    ) {
+      inferredKind = 'production';
+    }
+
+    return {
+      target: `${host}:${url.port || '5432'}/${database}`,
+      host,
+      database,
+      inferredKind,
+    };
+  } catch {
+    return {
+      target: 'unparseable-database-url',
+      host: 'unknown',
+      database: 'unknown',
+      inferredKind: 'unknown',
+    };
   }
 }
 
@@ -102,7 +151,13 @@ export async function waitForDatabase(
 
       if (!shouldRetry) {
         logger.error(
-          { err: error, attempt, target, databaseUrl: config.DATABASE_URL },
+          {
+            err: error,
+            attempt,
+            target,
+            appEnv: config.NODE_ENV,
+            databaseKind: getDatabaseConnectionSummary().inferredKind,
+          },
           '❌ Database connectivity check failed',
         );
         throw error;
@@ -123,12 +178,27 @@ export const connectDB = async () => {
   try {
     await prisma.$connect();
     await waitForDatabase();
+
+    const db = getDatabaseConnectionSummary();
     logger.info(
-      `✅ Connected to ${config.NODE_ENV} database: ${getDatabaseTargetLabel()}`,
+      {
+        appEnv: config.NODE_ENV,
+        databaseKind: db.inferredKind,
+        databaseHost: db.host,
+        databaseName: db.database,
+        databaseTarget: db.target,
+      },
+      `✅ Database connected | appEnv=${config.NODE_ENV} | dbKind=${db.inferredKind} | target=${db.target}`,
     );
   } catch (err) {
+    const db = getDatabaseConnectionSummary();
     logger.error(
-      { err, databaseUrl: config.DATABASE_URL },
+      {
+        err,
+        appEnv: config.NODE_ENV,
+        databaseKind: db.inferredKind,
+        databaseTarget: db.target,
+      },
       '❌ Database connection failed',
     );
     process.exit(1);

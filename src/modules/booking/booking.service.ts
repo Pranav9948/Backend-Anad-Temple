@@ -203,7 +203,8 @@ export class BookingService implements IBookingService {
       );
     }
 
-    if (input.totalAmount <= 0) {
+    const totalAmount = calculateHomamTotalPaise(input.members.length);
+    if (totalAmount <= 0) {
       throw new BusinessRuleViolationError(
         'Total amount must be greater than zero',
       );
@@ -233,7 +234,7 @@ export class BookingService implements IBookingService {
         address: input.address?.trim() || null,
         language: input.language,
         paymentStatus: PaymentStatus.PENDING,
-        totalAmount: input.totalAmount,
+        totalAmount,
         notes: input.notes ?? null,
       });
 

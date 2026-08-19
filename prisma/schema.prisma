@@ -7,14 +7,17 @@ datasource db {
   provider = "postgresql"
 }
 
-/// Temple administrator — authenticates via mobile OTP (independent model).
+/// Temple administrator — authenticates via email + password (JWT cookie).
 model Admin {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @db.VarChar(255)
-  mobile    String    @unique @db.VarChar(15)
-  role      AdminRole @default(ADMIN)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @db.VarChar(255)
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  mobile       String?   @unique @db.VarChar(15)
+  role         AdminRole @default(ADMIN)
+  isAdmin      Boolean   @default(true) @map("is_admin")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("admins")
 }

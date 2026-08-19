@@ -25,6 +25,8 @@ const adminBookingListQuerySchema = z.object({
   language: z.nativeEnum(Language).optional(),
   dateFrom: optionalDateSchema,
   dateTo: optionalDateSchema,
+  bookingKind: z.enum(['individual', 'family']).optional(),
+  recordStatus: z.enum(['active', 'checkedOut', 'cancelled']).optional(),
 });
 
 export const adminBookingListSchema = z.object({
@@ -48,6 +50,12 @@ export const adminUnpaidBookingsSchema = adminPaidBookingsSchema;
 export const adminBookingIdParamSchema = z.object({
   params: z.object({
     bookingId: uuidParamSchema,
+  }),
+});
+
+export const adminDuplicateMobileParamSchema = z.object({
+  params: z.object({
+    mobile: mobileSchema,
   }),
 });
 

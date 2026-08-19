@@ -14,6 +14,7 @@ export type AdminUpdateData = Prisma.AdminUpdateInput;
 export interface IAdminRepository {
   create(data: AdminCreateData): Promise<Admin>;
   findById(id: string): Promise<Admin | null>;
+  findByEmail(email: string): Promise<Admin | null>;
   findByMobile(mobile: string): Promise<Admin | null>;
   update(id: string, data: AdminUpdateData): Promise<Admin>;
   delete(id: string): Promise<Admin>;
@@ -26,6 +27,12 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
 
   findById(id: string): Promise<Admin | null> {
     return this.db.admin.findUnique({ where: { id } });
+  }
+
+  findByEmail(email: string): Promise<Admin | null> {
+    return this.db.admin.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
   }
 
   findByMobile(mobile: string): Promise<Admin | null> {
