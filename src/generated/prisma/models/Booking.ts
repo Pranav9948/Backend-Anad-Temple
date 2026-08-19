@@ -500,6 +500,10 @@ export type BookingScalarRelationFilter = {
   isNot?: Prisma.BookingWhereInput
 }
 
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
+}
+
 export type EnumLanguageFieldUpdateOperationsInput = {
   set?: $Enums.Language
 }

@@ -22,6 +22,11 @@ export const createBookingSchema = z.object({
   body: z.object({
     devoteeName: z.string().trim().min(1, 'Devotee name is required').max(255),
     mobile: mobileSchema,
+    address: z
+      .string()
+      .trim()
+      .min(1, 'Address is required')
+      .max(500, 'Address must be at most 500 characters'),
     language: languageSchema,
   }),
 });
@@ -33,6 +38,7 @@ export const updateBookingSchema = z.object({
   body: z
     .object({
       devoteeName: z.string().trim().min(1).max(255).optional(),
+      address: z.string().trim().min(1).max(500).optional(),
       language: languageSchema.optional(),
       notes: z.string().max(2000).optional(),
       totalAmount: z.number().int().positive().optional(),

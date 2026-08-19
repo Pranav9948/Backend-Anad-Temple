@@ -6,7 +6,7 @@ const envSchema = z.object({
     .enum(['development', 'production', 'test'])
     .default('development'),
 
-  PORT: z.coerce.number().int().positive().default(4000),
+  PORT: z.coerce.number().int().positive().default(8080),
 
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
@@ -33,7 +33,10 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
 
   /** Gmail SMTP (or any SMTP) for temple admin email alerts */
-  SMTP_HOST: z.string().min(1, 'SMTP_HOST is required').default('smtp.gmail.com'),
+  SMTP_HOST: z
+    .string()
+    .min(1, 'SMTP_HOST is required')
+    .default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_SECURE: z
     .enum(['true', 'false'])
@@ -46,9 +49,10 @@ const envSchema = z.object({
     .transform((value) => value.replace(/\s+/g, '').trim())
     .refine(
       (value) =>
-        !['replace_with_gmail_app_password', 'your_gmail_app_password'].includes(
-          value,
-        ),
+        ![
+          'replace_with_gmail_app_password',
+          'your_gmail_app_password',
+        ].includes(value),
       'SMTP_PASS is still a placeholder. Generate a Gmail App Password and set it in .env.development',
     )
     .refine(

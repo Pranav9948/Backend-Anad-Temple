@@ -28,7 +28,7 @@ model Booking {
   bookingNumber String          @unique @map("booking_number") @db.VarChar(32)
   devoteeName   String          @map("devotee_name") @db.VarChar(255)
   mobileNumber  String          @map("mobile_number") @db.VarChar(15)
-  address       String?
+  address       String?         @db.VarChar(500)
   language      Language
   paymentStatus PaymentStatus   @default(PENDING) @map("payment_status")
   totalAmount   Int             @map("total_amount")

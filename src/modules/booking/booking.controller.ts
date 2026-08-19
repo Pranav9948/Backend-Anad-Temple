@@ -13,15 +13,17 @@ import { getRouteParam } from '@/utils/route-params.js';
 
 export const createBooking: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
-    const { devoteeName, mobile, language } = req.body as {
+    const { devoteeName, mobile, address, language } = req.body as {
       devoteeName: string;
       mobile: string;
+      address: string;
       language: Language;
     };
 
     const booking = await bookingService.createInitialBooking({
       devoteeName,
       mobileNumber: mobile,
+      address,
       language,
     });
 
@@ -62,8 +64,9 @@ export const getBookingsByMobile: RequestHandler = asyncHandler(
 export const updateBooking: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const bookingId = getRouteParam(req.params.bookingId);
-    const { devoteeName, language, notes, totalAmount } = req.body as {
+    const { devoteeName, address, language, notes, totalAmount } = req.body as {
       devoteeName?: string;
+      address?: string;
       language?: Language;
       notes?: string;
       totalAmount?: number;
@@ -71,6 +74,7 @@ export const updateBooking: RequestHandler = asyncHandler(
 
     const booking = await bookingService.updateBooking(bookingId, {
       ...(devoteeName !== undefined ? { devoteeName } : {}),
+      ...(address !== undefined ? { address } : {}),
       ...(language !== undefined ? { language } : {}),
       ...(notes !== undefined ? { notes } : {}),
       ...(totalAmount !== undefined ? { totalAmount } : {}),

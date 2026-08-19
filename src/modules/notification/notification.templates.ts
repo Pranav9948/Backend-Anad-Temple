@@ -226,6 +226,7 @@ export function buildBookingCreatedMessage(
     `Booking Number: ${payload.bookingNumber}`,
     `Devotee Name: ${payload.devoteeName}`,
     `Mobile Number: ${payload.mobileNumber}`,
+    ...(payload.address ? [`Address: ${payload.address}`] : []),
     `Language: ${LANGUAGE_LABELS[payload.language]}`,
     `Archana Members: ${payload.memberCount}`,
     ...memberTextLines,
@@ -249,6 +250,7 @@ export function buildBookingCreatedMessage(
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         ${detailRow('Devotee Name', payload.devoteeName)}
         ${detailRow('Mobile Number', payload.mobileNumber)}
+        ${payload.address ? detailRow('Address', payload.address) : ''}
         ${detailRow('Language', LANGUAGE_LABELS[payload.language])}
         ${detailRow('Booking Time', bookingTime)}
       </table>
