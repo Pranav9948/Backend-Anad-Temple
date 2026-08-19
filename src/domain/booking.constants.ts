@@ -5,6 +5,8 @@ export const HOMAM_PRICE_PER_MEMBER_PAISE = 5000;
  * Family package: 3–5 members = ₹150 total.
  * Beyond 5: package + ₹50 per extra member.
  */
+
+export const FAMILY_BOOKING_MIN_MEMBERS = 3;
 export const HOMAM_FAMILY_PACKAGE_PAISE = 15_000;
 export const HOMAM_FAMILY_PACKAGE_MAX_MEMBERS = 5;
 
