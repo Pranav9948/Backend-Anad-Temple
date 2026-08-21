@@ -89,6 +89,7 @@ export class AdminDashboardService implements IAdminDashboardService {
       dateTo: query.dateTo,
       bookingKind: query.bookingKind,
       recordStatus: query.recordStatus,
+      paymentMethod: query.paymentMethod,
       sortBy: query.sortBy ?? query.sort,
       sortOrder: query.sortOrder,
     };
