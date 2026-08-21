@@ -44,6 +44,7 @@ export type AdminRecordStatus = 'active' | 'checkedOut' | 'cancelled';
 export type AdminBookingFilter = {
   search?: string;
   paymentStatus?: PaymentStatus;
+  paymentMethod?: 'GPAY' | 'CASH';
   language?: Language;
   dateFrom?: Date;
   dateTo?: Date;
@@ -57,6 +58,7 @@ export type AdminBookingFilter = {
 
 export type AdminBookingListRecord = Booking & {
   _count: { members: number };
+  payment: { method: PaymentMethod } | null;
 };
 
 export type BookingWithRelations = Booking & {
@@ -269,6 +271,7 @@ export class BookingRepository
       orderBy: buildAdminBookingOrderBy(filter.sortBy, filter.sortOrder),
       include: {
         _count: { select: { members: true } },
+        payment: { select: { method: true } },
       },
     });
   }
@@ -436,14 +439,16 @@ export class BookingRepository
     todayStart: Date,
     todayEnd: Date,
   ): Promise<DashboardStats> {
-    const [overall, today, methodTotals, todayMethodTotals] = await Promise.all([
-      this.aggregateRevenue(),
-      this.aggregateRevenue({
-        createdAt: { gte: todayStart, lte: todayEnd },
-      }),
-      this.sumPaidAmountsByMethod(),
-      this.sumPaidAmountsByMethod({ gte: todayStart, lte: todayEnd }),
-    ]);
+    const [overall, today, methodTotals, todayMethodTotals] = await Promise.all(
+      [
+        this.aggregateRevenue(),
+        this.aggregateRevenue({
+          createdAt: { gte: todayStart, lte: todayEnd },
+        }),
+        this.sumPaidAmountsByMethod(),
+        this.sumPaidAmountsByMethod({ gte: todayStart, lte: todayEnd }),
+      ],
+    );
 
     return {
       ...overall,
@@ -504,6 +509,20 @@ function buildAdminBookingWhereConditions(
 
   if (filter.paymentStatus) {
     conditions.push({ paymentStatus: filter.paymentStatus });
+  }
+
+  if (filter.paymentMethod === 'CASH') {
+    conditions.push({
+      payment: { is: { method: PaymentMethod.CASH } },
+    });
+  } else if (filter.paymentMethod === 'GPAY') {
+    conditions.push({
+      payment: {
+        is: {
+          method: { in: [PaymentMethod.GPAY, PaymentMethod.ONLINE] },
+        },
+      },
+    });
   }
 
   if (filter.language) {

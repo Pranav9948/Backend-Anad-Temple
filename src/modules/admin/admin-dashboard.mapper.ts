@@ -30,6 +30,11 @@ export function toAdminBookingListItem(booking: AdminBookingListRecord) {
     address: booking.address,
     language: booking.language,
     paymentStatus: booking.paymentStatus,
+    collectedMethod: booking.payment
+      ? booking.payment.method === 'CASH'
+        ? 'CASH'
+        : 'GPAY'
+      : null,
     totalAmount: calculateHomamTotalPaise(memberCount),
     memberCount,
     bookingKind,

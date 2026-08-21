@@ -27,6 +27,7 @@ const adminBookingListQuerySchema = z.object({
   dateTo: optionalDateSchema,
   bookingKind: z.enum(['individual', 'family']).optional(),
   recordStatus: z.enum(['active', 'checkedOut', 'cancelled']).optional(),
+  paymentMethod: z.enum(['GPAY', 'CASH']).optional(),
 });
 
 export const adminBookingListSchema = z.object({
