@@ -32,7 +32,8 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
 export const PaymentMethod = {
   ONLINE: 'ONLINE',
-  CASH: 'CASH'
+  CASH: 'CASH',
+  GPAY: 'GPAY'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]

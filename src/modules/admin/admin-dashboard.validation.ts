@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Language, PaymentStatus } from '@/generated/prisma/client.js';
+import { Language, PaymentMethod, PaymentStatus } from '@/generated/prisma/client.js';
 import { mobileSchema, uuidParamSchema } from '@/modules/booking/booking.validation.js';
 
 const pageSchema = z.coerce.number().int().positive().default(1);
@@ -79,11 +79,26 @@ export const adminUpdatePaymentSchema = z.object({
   params: z.object({
     bookingId: uuidParamSchema,
   }),
-  body: z.object({
-    paymentStatus: z.enum([PaymentStatus.PAID, PaymentStatus.PENDING], {
-      message: 'paymentStatus must be PAID or PENDING',
+  body: z
+    .object({
+      paymentStatus: z.enum([PaymentStatus.PAID, PaymentStatus.PENDING], {
+        message: 'paymentStatus must be PAID or PENDING',
+      }),
+      paymentMethod: z
+        .enum([PaymentMethod.GPAY, PaymentMethod.CASH], {
+          message: 'paymentMethod must be GPAY or CASH',
+        })
+        .optional(),
+    })
+    .superRefine((body, ctx) => {
+      if (body.paymentStatus === PaymentStatus.PAID && !body.paymentMethod) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['paymentMethod'],
+          message: 'Select GPay or Cash when marking a booking as paid',
+        });
+      }
     }),
-  }),
 });
 
 export const adminRevenueQuerySchema = z.object({

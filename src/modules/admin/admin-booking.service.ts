@@ -71,6 +71,7 @@ export interface IAdminBookingService {
     adminId: string,
     bookingId: string,
     paymentStatus: typeof PaymentStatus.PAID | typeof PaymentStatus.PENDING,
+    paymentMethod?: typeof PaymentMethod.GPAY | typeof PaymentMethod.CASH,
   ): Promise<ReturnType<typeof toAdminBookingDetails>>;
   addMember(
     adminId: string,
@@ -216,6 +217,7 @@ export class AdminBookingService implements IAdminBookingService {
     adminId: string,
     bookingId: string,
     paymentStatus: typeof PaymentStatus.PAID | typeof PaymentStatus.PENDING,
+    paymentMethod?: typeof PaymentMethod.GPAY | typeof PaymentMethod.CASH,
   ) {
     const booking = await this.bookings.findById(bookingId);
     if (!booking) {
@@ -223,8 +225,13 @@ export class AdminBookingService implements IAdminBookingService {
     }
 
     if (paymentStatus === PaymentStatus.PAID) {
+      const method = paymentMethod ?? PaymentMethod.CASH;
       const priced = await this.syncHomamAmount(bookingId);
-      const result = await this.markBookingPaid(bookingId, priced.totalAmount);
+      const result = await this.markBookingPaid(
+        bookingId,
+        priced.totalAmount,
+        method,
+      );
 
       void this.notifications.notifyPaymentSuccess({
         bookingNumber: booking.bookingNumber,
@@ -375,7 +382,11 @@ export class AdminBookingService implements IAdminBookingService {
     return this.requireBookingWithRelations(bookingId);
   }
 
-  private async markBookingPaid(bookingId: string, amount: number) {
+  private async markBookingPaid(
+    bookingId: string,
+    amount: number,
+    method: typeof PaymentMethod.GPAY | typeof PaymentMethod.CASH,
+  ) {
     try {
       return await runInTransaction(async (tx) => {
         const bookingRepo = new BookingRepository(tx);
@@ -389,7 +400,7 @@ export class AdminBookingService implements IAdminBookingService {
           payment = await paymentRepo.create({
             booking: { connect: { id: bookingId } },
             amount,
-            method: PaymentMethod.CASH,
+            method,
             status: PaymentStatus.PAID,
             paidAt: new Date(),
             transactionId: `manual-${Date.now()}`,
@@ -398,7 +409,7 @@ export class AdminBookingService implements IAdminBookingService {
           payment = await paymentRepo.update(payment.id, {
             status: PaymentStatus.PAID,
             paidAt: new Date(),
-            method: PaymentMethod.CASH,
+            method,
             transactionId: payment.transactionId ?? `manual-${Date.now()}`,
           });
         }

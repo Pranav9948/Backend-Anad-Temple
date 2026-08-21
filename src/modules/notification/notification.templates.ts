@@ -46,6 +46,7 @@ export function formatAmountInr(amountPaise: number): string {
 
 export function formatPaymentMethod(method: string): string {
   if (method === 'CASH') return 'Cash / Offline at temple';
+  if (method === 'GPAY' || method === 'ONLINE') return 'GPay';
   return method;
 }
 
@@ -287,7 +288,8 @@ export function buildBookingCreatedMessage(
     html: wrapEmailLayout({
       eyebrow: 'Anad Chamundi Temple',
       title: 'New Temple Booking',
-      subtitle: 'Ganapathi Homam booking received — please review details below.',
+      subtitle:
+        'Ganapathi Homam booking received — please review details below.',
       bodyHtml,
     }),
   };

@@ -155,10 +155,14 @@ export function toDashboardResponse(stats: {
   totalRevenue: number;
   paidRevenue: number;
   pendingRevenue: number;
+  cashRevenue: number;
+  gpayRevenue: number;
   todayBookings: number;
   todayRevenue: number;
   todayPaidRevenue: number;
   todayPendingRevenue: number;
+  todayCashRevenue: number;
+  todayGpayRevenue: number;
 }) {
   return {
     totalBookings: stats.bookingCount,
@@ -167,11 +171,15 @@ export function toDashboardResponse(stats: {
     totalRevenue: stats.totalRevenue,
     paidRevenue: stats.paidRevenue,
     pendingRevenue: stats.pendingRevenue,
+    cashRevenue: stats.cashRevenue,
+    gpayRevenue: stats.gpayRevenue,
     today: {
       bookings: stats.todayBookings,
       revenue: stats.todayRevenue,
       paidRevenue: stats.todayPaidRevenue,
       pendingRevenue: stats.todayPendingRevenue,
+      cashRevenue: stats.todayCashRevenue,
+      gpayRevenue: stats.todayGpayRevenue,
     },
   };
 }

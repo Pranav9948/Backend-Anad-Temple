@@ -115,6 +115,7 @@ enum PaymentStatus {
 enum PaymentMethod {
   ONLINE
   CASH
+  GPAY
 }
 
 enum AdminRole {

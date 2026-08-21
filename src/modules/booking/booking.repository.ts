@@ -5,7 +5,7 @@ import type {
   Payment,
   Prisma,
 } from '@/generated/prisma/client.js';
-import { PaymentStatus } from '@/generated/prisma/client.js';
+import { PaymentStatus, PaymentMethod } from '@/generated/prisma/client.js';
 import { FAMILY_BOOKING_MIN_MEMBERS } from '@/domain/booking.constants.js';
 import {
   CANCELLED_BOOKING_PREFIX,
@@ -78,6 +78,10 @@ export type DashboardStats = RevenueAggregate & {
   todayRevenue: number;
   todayPaidRevenue: number;
   todayPendingRevenue: number;
+  cashRevenue: number;
+  gpayRevenue: number;
+  todayCashRevenue: number;
+  todayGpayRevenue: number;
 };
 
 export type BookingWithMembers = Booking & { members: BookingMember[] };
@@ -432,11 +436,13 @@ export class BookingRepository
     todayStart: Date,
     todayEnd: Date,
   ): Promise<DashboardStats> {
-    const [overall, today] = await Promise.all([
+    const [overall, today, methodTotals, todayMethodTotals] = await Promise.all([
       this.aggregateRevenue(),
       this.aggregateRevenue({
         createdAt: { gte: todayStart, lte: todayEnd },
       }),
+      this.sumPaidAmountsByMethod(),
+      this.sumPaidAmountsByMethod({ gte: todayStart, lte: todayEnd }),
     ]);
 
     return {
@@ -445,7 +451,49 @@ export class BookingRepository
       todayRevenue: today.totalRevenue,
       todayPaidRevenue: today.paidRevenue,
       todayPendingRevenue: today.pendingRevenue,
+      cashRevenue: methodTotals.cash,
+      gpayRevenue: methodTotals.gpay,
+      todayCashRevenue: todayMethodTotals.cash,
+      todayGpayRevenue: todayMethodTotals.gpay,
     };
+  }
+
+  private async sumPaidAmountsByMethod(range?: {
+    gte: Date;
+    lte: Date;
+  }): Promise<{ cash: number; gpay: number }> {
+    const grouped = await this.db.payment.groupBy({
+      by: ['method'],
+      where: {
+        status: PaymentStatus.PAID,
+        ...(range
+          ? {
+              OR: [
+                { paidAt: { gte: range.gte, lte: range.lte } },
+                {
+                  paidAt: null,
+                  createdAt: { gte: range.gte, lte: range.lte },
+                },
+              ],
+            }
+          : {}),
+      },
+      _sum: { amount: true },
+    });
+
+    let cash = 0;
+    let gpay = 0;
+
+    for (const row of grouped) {
+      const amount = row._sum.amount ?? 0;
+      if (row.method === PaymentMethod.CASH) {
+        cash += amount;
+      } else {
+        gpay += amount;
+      }
+    }
+
+    return { cash, gpay };
   }
 }
 
