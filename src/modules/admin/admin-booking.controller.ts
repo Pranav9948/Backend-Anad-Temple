@@ -1,5 +1,5 @@
 import type { Request, Response, RequestHandler } from 'express';
-import { PaymentStatus } from '@/generated/prisma/client.js';
+import { PaymentMethod, PaymentStatus } from '@/generated/prisma/client.js';
 import type { Nakshatra } from '@/generated/prisma/client.js';
 import { adminBookingService } from '@/modules/admin/admin-booking.service.js';
 import { adminBookingListQuerySchema } from '@/modules/admin/admin-dashboard.validation.js';
@@ -107,14 +107,16 @@ export const updateBooking: RequestHandler = asyncHandler(
 export const updateBookingPayment: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const bookingId = getRouteParam(req.params.bookingId);
-    const { paymentStatus } = req.body as {
+    const { paymentStatus, paymentMethod } = req.body as {
       paymentStatus: typeof PaymentStatus.PAID | typeof PaymentStatus.PENDING;
+      paymentMethod?: typeof PaymentMethod.GPAY | typeof PaymentMethod.CASH;
     };
 
     const details = await adminBookingService.updatePaymentStatus(
       req.user!.userId,
       bookingId,
       paymentStatus,
+      paymentMethod,
     );
 
     sendSuccess(res, details, 'Booking payment status updated successfully');
